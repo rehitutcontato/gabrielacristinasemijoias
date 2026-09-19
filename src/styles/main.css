@@ -1,0 +1,168 @@
+:root {
+  /* Color Palette - PRD Specifications */
+  --bg-primary: #FAF8F5; /* Off-White Marfim */
+  --bg-surface: #FFFFFF;
+  --bg-surface-alt: #F4EFEA;
+  --bg-cream: #F8F3ED;
+  --bg-dark: #1F1C18;
+  
+  /* Gold Accent Shades */
+  --gold-primary: #C5A059; /* Dourado Metálico */
+  --gold-dark: #A5823D;
+  --gold-light: #DFC794;
+  --gold-ultralight: #F9F5EC;
+  --gold-border: rgba(197, 160, 89, 0.3);
+  --gold-border-focus: rgba(197, 160, 89, 0.8);
+  --gold-glow: 0 4px 20px rgba(197, 160, 89, 0.25);
+
+  /* Typography Colors */
+  --text-primary: #211E1B;
+  --text-secondary: #5E5852;
+  --text-muted: #8E877F;
+  --text-light: #FAF8F5;
+  --text-gold: #B38C44;
+
+  /* Status Colors */
+  --whatsapp-green: #25D366;
+  --whatsapp-hover: #20BA5A;
+  --badge-stock: #D32F2F;
+  --badge-gold: #C5A059;
+  --badge-silver: #78909C;
+
+  /* Geometry - PRD rounded-xl */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-subtle: 0 4px 20px -2px rgba(33, 30, 27, 0.05);
+  --shadow-card: 0 8px 30px rgba(33, 30, 27, 0.06);
+  --shadow-hover: 0 16px 36px rgba(197, 160, 89, 0.18);
+  --shadow-drawer: -4px 0 30px rgba(0, 0, 0, 0.15);
+
+  /* Fonts */
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Transitions */
+  --transition-fast: 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Reset & Base */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  padding-bottom: 72px; /* Space for mobile bottom bar */
+}
+
+@media (min-width: 992px) {
+  body {
+    padding-bottom: 0;
+  }
+}
+
+/* Typography Helpers */
+h1, h2, h3, h4, .font-serif {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  outline: none;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Container */
+.container {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: 0 2rem;
+  }
+}
+
+/* Keyframes */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(37, 211, 102, 0);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--gold-light);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-primary);
+}
