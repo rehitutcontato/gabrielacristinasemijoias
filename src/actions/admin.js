@@ -3,6 +3,7 @@ import { PRODUCTS } from '../data/products';
 
 const OVERRIDES_STORAGE_KEY = 'gc_catalog_overrides_v1';
 const CUSTOM_PRODUCTS_KEY = 'gc_custom_products_v1';
+const DELETED_PRODUCTS_KEY = 'gc_deleted_products_v1';
 
 /**
  * Funções auxiliares de persistência local para garantir que qualquer alteração
@@ -24,6 +25,25 @@ export function saveLocalOverrides(overrides) {
     localStorage.setItem(OVERRIDES_STORAGE_KEY, JSON.stringify(overrides));
   } catch (e) {
     console.error('Erro ao salvar no storage local:', e);
+  }
+}
+
+export function getDeletedProducts() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(DELETED_PRODUCTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveDeletedProducts(deletedIds) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(DELETED_PRODUCTS_KEY, JSON.stringify(deletedIds));
+  } catch (e) {
+    console.error('Erro ao salvar produtos excluídos:', e);
   }
 }
 
@@ -363,12 +383,15 @@ export async function cadastrarProduto(formData) {
 }
 
 /**
- * 4. Obter Produtos para a Vitrine Pública (Apenas Ativos)
+ * 4. Obter Produtos para a Vitrine Pública
+ * Mantém todos os itens do catálogo visíveis (peças esgotadas aparecem com badge 'Esgotado')
+ * e exclui somente as peças que foram de fato apagadas.
  */
 export async function obterProdutosVitrine() {
   const client = getSupabaseClient();
   const overrides = getLocalOverrides();
   const customs = getCustomProducts();
+  const deletedIds = getDeletedProducts();
 
   let baseList = [];
 
@@ -377,7 +400,6 @@ export async function obterProdutosVitrine() {
       const { data, error } = await client
         .from('produtos')
         .select('*')
-        .eq('ativo', true)
         .order('criado_em', { ascending: false });
 
       if (!error && data && data.length > 0) {
@@ -388,16 +410,19 @@ export async function obterProdutosVitrine() {
     }
   }
 
-  // Se não veio do Supabase, mescla customProducts criados no Admin com os 59 itens do catálogo
+  // Se não veio do Supabase, mescla customProducts criados no Admin com os itens do catálogo
   if (baseList.length === 0) {
     baseList = [...customs, ...PRODUCTS];
   }
 
-  // Aplica overrides locais (preços alterados, estoque ligado/desligado)
-  const mappedList = baseList.map((p) => applyOverrides(p, overrides));
+  // Remove apenas os produtos que foram realmente excluídos pelo usuário
+  const nonDeleted = baseList.filter((p) => !deletedIds.includes(p.id));
 
-  // Retorna apenas os produtos onde ativo === true
-  return mappedList.filter((p) => p.ativo === true || p.in_stock === true);
+  // Aplica overrides locais (preços alterados, estoque ligado/desligado)
+  const mappedList = nonDeleted.map((p) => applyOverrides(p, overrides));
+
+  // Retorna todos os produtos do catálogo (tanto Ativos quanto Esgotados continuam no catálogo)
+  return mappedList;
 }
 
 /**
@@ -407,6 +432,7 @@ export async function obterProdutosAdmin() {
   const client = getSupabaseClient();
   const overrides = getLocalOverrides();
   const customs = getCustomProducts();
+  const deletedIds = getDeletedProducts();
 
   let baseList = [];
 
@@ -429,6 +455,60 @@ export async function obterProdutosAdmin() {
     baseList = [...customs, ...PRODUCTS];
   }
 
+  // Remove produtos que foram excluídos
+  const nonDeleted = baseList.filter((p) => !deletedIds.includes(p.id));
+
   // Aplica overrides e retorna todos para gestão
-  return baseList.map((p) => applyOverrides(p, overrides));
+  return nonDeleted.map((p) => applyOverrides(p, overrides));
 }
+
+/**
+ * 6. Excluir Produto do Catálogo (Apagar Definitivamente)
+ */
+export async function excluirProduto(id) {
+  if (!id) throw new Error('ID do produto não informado.');
+
+  // 1. Registra como excluído no armazenamento local
+  const deleted = getDeletedProducts();
+  if (!deleted.includes(id)) {
+    deleted.push(id);
+    saveDeletedProducts(deleted);
+  }
+
+  // Remove da lista de produtos customizados se existir
+  const customs = getCustomProducts();
+  const updatedCustoms = customs.filter((c) => c.id !== id);
+  if (customs.length !== updatedCustoms.length) {
+    saveCustomProducts(updatedCustoms);
+  }
+
+  // Remove overrides específicos deste ID
+  const overrides = getLocalOverrides();
+  if (overrides[id]) {
+    delete overrides[id];
+    saveLocalOverrides(overrides);
+  }
+
+  // 2. Remove do Supabase (se conectado)
+  const client = getSupabaseClient();
+  if (client) {
+    try {
+      const { error } = await client
+        .from('produtos')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.warn('Aviso ao excluir no Supabase (excluído localmente):', error.message);
+      }
+    } catch (err) {
+      console.warn('Erro ao conectar com Supabase para exclusão:', err);
+    }
+  }
+
+  await revalidatePath('/');
+  await revalidatePath('/admin');
+
+  return { success: true, id };
+}
+

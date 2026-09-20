@@ -4,6 +4,7 @@ import {
   obterProdutosVitrine,
   getLocalOverrides,
   getCustomProducts,
+  getDeletedProducts,
   mapSupabaseProduct,
 } from './actions/admin';
 import { useCart } from './context/CartContext';
@@ -81,7 +82,8 @@ export function App() {
     if (typeof window !== 'undefined') {
       const overrides = getLocalOverrides();
       const customs = getCustomProducts();
-      const base = [...customs, ...PRODUCTS];
+      const deletedIds = getDeletedProducts();
+      const base = [...customs, ...PRODUCTS].filter((p) => !deletedIds.includes(p.id));
       const mapped = base.map((p) => {
         const o = overrides[p.id];
         if (!o) return mapSupabaseProduct(p);
@@ -103,7 +105,8 @@ export function App() {
           ativo: isAtivo,
         };
       });
-      return mapped.filter((p) => p.ativo === true || p.in_stock === true);
+      // Retorna todos os produtos (peças esgotadas continuam visíveis no catálogo com badge 'Esgotado')
+      return mapped;
     }
     return PRODUCTS;
   });

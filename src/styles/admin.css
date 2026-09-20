@@ -579,6 +579,34 @@
   border: 1px solid #E5E7EB;
 }
 
+.admin-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.admin-delete-btn {
+  background: transparent;
+  border: 1px solid #F3E8E8;
+  color: #9CA3AF;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-delete-btn:hover {
+  background: #FEF2F2;
+  border-color: #FCA5A5;
+  color: #DC2626;
+  transform: scale(1.05);
+}
+
 /* Inline Price Controls */
 .admin-product-prices {
   display: flex;
@@ -723,4 +751,96 @@
 .admin-notice-banner:hover {
   background: #FAF6EF;
   border-color: var(--admin-gold);
+}
+
+/* ==============================================================================
+   MODAL DE CONFIRMAÇÃO DE EXCLUSÃO
+   ============================================================================== */
+.admin-confirm-modal {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 1.5rem;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  animation: scaleUp 0.2s ease-out;
+}
+
+.admin-confirm-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #FEF2F2;
+  color: #DC2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.admin-confirm-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1F2937;
+  margin: 0 0 0.5rem;
+}
+
+.admin-confirm-text {
+  font-size: 0.85rem;
+  color: #4B5563;
+  line-height: 1.45;
+  margin: 0 0 1.25rem;
+}
+
+.admin-confirm-hint {
+  display: block;
+  font-size: 0.76rem;
+  color: #6B7280;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 0.5rem;
+  margin-top: 0.75rem;
+  text-align: left;
+}
+
+.admin-confirm-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-btn-danger {
+  flex: 1;
+  background: #DC2626;
+  color: #FFFFFF;
+  border: none;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.admin-btn-danger:hover:not(:disabled) {
+  background: #B91C1C;
+}
+
+.admin-btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@keyframes scaleUp {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }

@@ -18,12 +18,14 @@ import {
   ExternalLink,
   CheckCircle2,
   AlertTriangle,
+  Trash2,
 } from 'lucide-react';
 import {
   obterProdutosAdmin,
   atualizarPrecos,
   alternarStatusProduto,
   cadastrarProduto,
+  excluirProduto,
 } from '../../actions/admin';
 import {
   getSupabaseCredentials,
@@ -228,6 +230,29 @@ export function AdminPage({ onNavigateToStore }) {
     } catch (err) {
       console.error('Erro ao atualizar preços:', err);
       showToast('Erro ao salvar preços.');
+    }
+  };
+
+  // --------------------------------------------------------------------------
+  // 4b. EXCLUSÃO DE PRODUTO
+  // --------------------------------------------------------------------------
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const confirmDeleteProduct = async () => {
+    if (!productToDelete) return;
+    const id = productToDelete.id;
+    setIsDeleting(true);
+    try {
+      await excluirProduto(id);
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      showToast('Peça excluída permanentemente com sucesso.');
+      setProductToDelete(null);
+    } catch (err) {
+      console.error('Erro ao excluir peça:', err);
+      showToast('Erro ao excluir peça. Tente novamente.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -531,6 +556,7 @@ export function AdminPage({ onNavigateToStore }) {
                 product={product}
                 onToggleStatus={() => handleToggleStatus(product)}
                 onSavePrices={(preco, promo) => handleSavePrices(product.id, preco, promo)}
+                onDelete={() => setProductToDelete(product)}
               />
             ))}
           </div>
@@ -780,6 +806,43 @@ export function AdminPage({ onNavigateToStore }) {
         </div>
       )}
 
+      {/* Modal de Confirmação para Exclusão Definitiva */}
+      {productToDelete && (
+        <div className="admin-modal-backdrop" onClick={() => !isDeleting && setProductToDelete(null)}>
+          <div className="admin-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-confirm-icon">
+              <Trash2 size={24} color="#DC2626" />
+            </div>
+            <h3 className="admin-confirm-title">Excluir Peça do Catálogo?</h3>
+            <p className="admin-confirm-text">
+              Tem certeza que deseja apagar definitivamente a peça <strong>"{productToDelete.nome || productToDelete.name}"</strong>?
+              <br />
+              <span className="admin-confirm-hint">
+                💡 <em>Dica:</em> Se a peça apenas acabou o estoque, use a opção <strong>Esgotado</strong> para que ela permaneça visível na vitrine sem permitir compras.
+              </span>
+            </p>
+            <div className="admin-confirm-actions">
+              <button
+                type="button"
+                className="admin-btn-ghost"
+                onClick={() => setProductToDelete(null)}
+                disabled={isDeleting}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="admin-btn-danger"
+                onClick={confirmDeleteProduct}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Excluindo...' : 'Sim, Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toast de Feedback Discreto */}
       {toastMessage && (
         <div className="admin-toast success">
@@ -794,7 +857,7 @@ export function AdminPage({ onNavigateToStore }) {
 // ----------------------------------------------------------------------------
 // COMPONENTE: LINHA / CARTÃO DE PRODUTO COMPACTO (MOBILE-FIRST)
 // ----------------------------------------------------------------------------
-function AdminProductRow({ product, onToggleStatus, onSavePrices }) {
+function AdminProductRow({ product, onToggleStatus, onSavePrices, onDelete }) {
   const isAtivo = product.ativo ?? product.in_stock ?? true;
   const initialPreco = product.preco ?? product.price ?? 0;
   const initialPromo = product.preco_promocional ?? product.promotional_price ?? '';
@@ -828,7 +891,7 @@ function AdminProductRow({ product, onToggleStatus, onSavePrices }) {
 
   return (
     <div className={`admin-product-row ${!isAtivo ? 'is-inactive' : ''}`}>
-      {/* Topo da linha: Foto + Nome/Categoria + Toggle Ativo/Esgotado */}
+      {/* Topo da linha: Foto + Nome/Categoria + Ações (Toggle + Excluir) */}
       <div className="admin-product-row-top">
         <img
           src={imgSrc}
@@ -849,23 +912,35 @@ function AdminProductRow({ product, onToggleStatus, onSavePrices }) {
           </span>
         </div>
 
-        {/* Toggle de Disponibilidade */}
-        <button
-          type="button"
-          className={`admin-toggle-btn ${isAtivo ? 'active' : 'inactive'}`}
-          onClick={onToggleStatus}
-          title={isAtivo ? 'Clique para marcar como Esgotado' : 'Clique para marcar como Ativo'}
-        >
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              backgroundColor: isAtivo ? '#10B981' : '#9CA3AF',
-            }}
-          />
-          <span>{isAtivo ? 'Ativo' : 'Esgotado'}</span>
-        </button>
+        {/* Grupo de Ações: Toggle Ativo/Esgotado + Lixeira */}
+        <div className="admin-row-actions">
+          <button
+            type="button"
+            className={`admin-toggle-btn ${isAtivo ? 'active' : 'inactive'}`}
+            onClick={onToggleStatus}
+            title={isAtivo ? 'Clique para marcar como Esgotado (continua no catálogo)' : 'Clique para marcar como Ativo'}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                backgroundColor: isAtivo ? '#10B981' : '#9CA3AF',
+              }}
+            />
+            <span>{isAtivo ? 'Ativo' : 'Esgotado'}</span>
+          </button>
+
+          <button
+            type="button"
+            className="admin-delete-btn"
+            onClick={onDelete}
+            title="Excluir produto definitivamente"
+            aria-label="Excluir produto"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
 
       {/* Rodapé da linha: Inputs numéricos inline de Preço e Promocional */}
