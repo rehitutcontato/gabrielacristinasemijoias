@@ -901,3 +901,206 @@
   background: var(--gold-ultralight);
   color: var(--admin-gold);
 }
+
+/* ==============================================================================
+   ADMIN: EDIÇÃO DE PRODUTO, VARIAÇÕES E TAMANHOS
+   ============================================================================== */
+.admin-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--admin-gold-border);
+  background: var(--admin-gold-light);
+  color: var(--admin-gold-hover);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.admin-edit-btn:hover {
+  background: var(--admin-gold);
+  color: #FFFFFF;
+  border-color: var(--admin-gold);
+  transform: scale(1.05);
+}
+
+.admin-product-row-variations {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-var-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.admin-var-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--admin-text-secondary);
+}
+
+.admin-var-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.admin-var-chip {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #F3F4F6;
+  color: #374151;
+  border: 1px solid #E5E7EB;
+}
+
+.admin-var-chip.color-chip {
+  background: #FFFBEB;
+  color: #92400E;
+  border-color: #FDE68A;
+}
+
+/* Edit Drawer / Modal */
+.admin-edit-drawer {
+  max-width: 580px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.admin-edit-product-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--admin-gold-light);
+  border-radius: 12px;
+  border: 1px solid var(--admin-gold-border);
+  margin-bottom: 1rem;
+}
+
+.admin-edit-preview-thumb {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+}
+
+/* Variations Box (Inspired by Client Screenshot) */
+.admin-variations-box {
+  background: #FAF8F5;
+  border: 1px solid var(--admin-gold-border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 14px;
+}
+
+.admin-variations-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.admin-variations-desc {
+  font-size: 0.78rem;
+  color: var(--admin-text-secondary);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.admin-var-property-selector {
+  margin-bottom: 12px;
+}
+
+.admin-var-panel {
+  background: #FFFFFF;
+  border: 1px solid #ECE7DF;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.admin-var-quick-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.admin-quick-size-btn {
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #D1D5DB;
+  background: #FFFFFF;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-quick-size-btn:hover {
+  border-color: var(--admin-gold);
+  color: var(--admin-gold-hover);
+}
+
+.admin-quick-size-btn.active {
+  background: var(--admin-gold);
+  color: #FFFFFF;
+  border-color: var(--admin-gold);
+  box-shadow: 0 2px 6px rgba(197, 160, 89, 0.3);
+}
+
+.admin-active-chips-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.admin-active-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #F4ECE1;
+  color: #8C6D23;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgba(197, 160, 89, 0.35);
+}
+
+.admin-active-chip button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #8C6D23;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.admin-active-chip button:hover {
+  opacity: 1;
+  color: #EF4444;
+}
+

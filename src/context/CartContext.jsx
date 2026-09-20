@@ -69,33 +69,58 @@ export const CartProvider = ({ children }) => {
     }, 2800);
   };
 
-  const addToCart = (product, quantity = 1) => {
+  const addToCart = (product, quantity = 1, variation = {}) => {
     if (!product.in_stock) return;
-    
+
+    const vTamanho = variation?.tamanho ? String(variation.tamanho).trim() : '';
+    const vCor = variation?.cor ? String(variation.cor).trim() : '';
+    const cartItemId = `${product.id}${vTamanho ? `__tam_${vTamanho}` : ''}${vCor ? `__cor_${vCor}` : ''}`;
+
     setCart((prevCart) => {
-      const existing = prevCart.find((item) => item.product.id === product.id);
-      if (existing) {
-        return prevCart.map((item) =>
-          item.product.id === product.id
+      const existingIndex = prevCart.findIndex(
+        (item) =>
+          item.cartItemId === cartItemId ||
+          (!item.cartItemId && item.product.id === product.id && !vTamanho && !vCor)
+      );
+
+      if (existingIndex !== -1) {
+        return prevCart.map((item, idx) =>
+          idx === existingIndex
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       }
-      return [...prevCart, { product, quantity }];
+
+      return [
+        ...prevCart,
+        {
+          product,
+          quantity,
+          variation: {
+            tamanho: vTamanho || null,
+            cor: vCor || null,
+          },
+          cartItemId,
+        },
+      ];
     });
 
     showToast(product);
   };
 
-  const removeFromCart = (productId) => {
-    setCart((prevCart) => prevCart.filter((item) => item.product.id !== productId));
+  const removeFromCart = (identifier) => {
+    setCart((prevCart) =>
+      prevCart.filter(
+        (item) => item.cartItemId !== identifier && item.product.id !== identifier
+      )
+    );
   };
 
-  const updateQuantity = (productId, delta) => {
+  const updateQuantity = (identifier, delta) => {
     setCart((prevCart) => {
       return prevCart
         .map((item) => {
-          if (item.product.id === productId) {
+          if (item.cartItemId === identifier || item.product.id === identifier) {
             const newQty = item.quantity + delta;
             return newQty > 0 ? { ...item, quantity: newQty } : null;
           }
@@ -141,7 +166,12 @@ export const CartProvider = ({ children }) => {
     message += `🛍️ *Itens Escolhidos:*\n`;
     cart.forEach((item) => {
       const itemTotal = (item.product.price * item.quantity).toFixed(2).replace('.', ',');
-      message += `• *${item.quantity}x* ${item.product.name}\n`;
+      const details = [];
+      if (item.variation?.tamanho) details.push(`Aro/Tamanho: ${item.variation.tamanho}`);
+      if (item.variation?.cor) details.push(`Cor: ${item.variation.cor}`);
+      const varInfo = details.length > 0 ? ` [${details.join(' • ')}]` : '';
+
+      message += `• *${item.quantity}x* ${item.product.name}${varInfo}\n`;
       message += `   (R$ ${item.product.price.toFixed(2).replace('.', ',')} cada) — *R$ ${itemTotal}*\n`;
     });
 
@@ -153,10 +183,16 @@ export const CartProvider = ({ children }) => {
     return `https://wa.me/${STORE_CONFIG.whatsappNumber}?text=${encoded}`;
   };
 
-  const getDirectProductWhatsAppUrl = (product, quantity = 1) => {
+  const getDirectProductWhatsAppUrl = (product, quantity = 1, variation = {}) => {
     const itemTotal = (product.price * quantity).toFixed(2).replace('.', ',');
     let message = `✨ *Olá, ${STORE_CONFIG.founderName}! Vi essa peça no catálogo e amei:*\n\n`;
     message += `💎 *${quantity}x ${product.name}*\n`;
+    if (variation?.tamanho) {
+      message += `💍 *Aro/Tamanho:* ${variation.tamanho}\n`;
+    }
+    if (variation?.cor) {
+      message += `🎨 *Variação/Cor:* ${variation.cor}\n`;
+    }
     message += `💰 *Valor:* R$ ${itemTotal}\n`;
     message += `✨ *Banho:* ${product.material}\n\n`;
     message += `Está disponível para pronta entrega? Como podemos finalizar o pedido? Obrigado(a)! ✨`;

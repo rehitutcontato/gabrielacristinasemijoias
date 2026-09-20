@@ -9,8 +9,14 @@ export const ProductCard = ({ product, onQuickView }) => {
   const isGold = product.material.toLowerCase().includes('ouro');
   const isSilver = product.material.toLowerCase().includes('ródio') || product.material.toLowerCase().includes('prata');
 
+  const hasSizes = Array.isArray(product.tamanhos) && product.tamanhos.length > 0;
+
   const handleAddClick = (e) => {
     e.stopPropagation();
+    if (hasSizes) {
+      onQuickView(product);
+      return;
+    }
     addToCart(product, 1);
   };
 
@@ -58,6 +64,13 @@ export const ProductCard = ({ product, onQuickView }) => {
             {product.name}
           </h3>
 
+          {hasSizes && (
+            <div className="card-size-tag">
+              <span>{product.category === 'Anéis' ? 'Aros disp.: ' : 'Tam: '}</span>
+              <strong>{product.tamanhos.slice(0, 4).join(', ')}{product.tamanhos.length > 4 ? '...' : ''}</strong>
+            </div>
+          )}
+
           <div className="card-price-group">
             <div className="card-price-main">
               {product.formatted_price}
@@ -73,10 +86,10 @@ export const ProductCard = ({ product, onQuickView }) => {
           className="card-btn-add"
           onClick={handleAddClick}
           disabled={!product.in_stock}
-          title={product.in_stock ? 'Adicionar à sua sacola' : 'Peça esgotada no momento'}
+          title={product.in_stock ? (hasSizes ? 'Ver aros e adicionar' : 'Adicionar à sua sacola') : 'Peça esgotada no momento'}
         >
           <ShoppingBag size={15} />
-          <span>{product.in_stock ? 'Adicionar à Sacola' : 'Esgotado'}</span>
+          <span>{product.in_stock ? (hasSizes ? 'Escolher Tamanho' : 'Adicionar à Sacola') : 'Esgotado'}</span>
         </button>
       </div>
     </div>

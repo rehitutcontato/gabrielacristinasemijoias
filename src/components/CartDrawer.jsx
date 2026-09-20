@@ -100,55 +100,70 @@ export const CartDrawer = () => {
         ) : (
           <>
             <div className="drawer-items-list">
-              {cart.map(({ product, quantity }) => (
-                <div key={product.id} className="cart-item">
-                  <img
-                    src={product.local_image || product.image}
-                    alt={product.name}
-                    className="cart-item-img"
-                  />
-                  <div className="cart-item-info">
-                    <div>
-                      <div className="cart-item-name">{product.name}</div>
-                      <div className="cart-item-material">{product.material}</div>
-                    </div>
-
-                    <div className="cart-item-bottom">
-                      <div className="quantity-stepper" style={{ transform: 'scale(0.9)', transformOrigin: 'left center' }}>
-                        <button
-                          className="qty-btn"
-                          onClick={() => updateQuantity(product.id, -1)}
-                          aria-label="Diminuir quantidade"
-                        >
-                          <Minus size={14} />
-                        </button>
-                        <span className="qty-display">{quantity}</span>
-                        <button
-                          className="qty-btn"
-                          onClick={() => updateQuantity(product.id, 1)}
-                          aria-label="Aumentar quantidade"
-                        >
-                          <Plus size={14} />
-                        </button>
+              {cart.map(({ product, quantity, variation, cartItemId }) => {
+                const itemKey = cartItemId || product.id;
+                return (
+                  <div key={itemKey} className="cart-item">
+                    <img
+                      src={product.local_image || product.image}
+                      alt={product.name}
+                      className="cart-item-img"
+                    />
+                    <div className="cart-item-info">
+                      <div>
+                        <div className="cart-item-name">{product.name}</div>
+                        <div className="cart-item-material">
+                          <span>{product.material}</span>
+                          {variation?.tamanho && (
+                            <span className="cart-item-var-badge">
+                              💍 Aro: {variation.tamanho}
+                            </span>
+                          )}
+                          {variation?.cor && (
+                            <span className="cart-item-var-badge">
+                              {variation.cor}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div className="cart-item-price">
-                          R$ {(product.price * quantity).toFixed(2).replace('.', ',')}
+                      <div className="cart-item-bottom">
+                        <div className="quantity-stepper" style={{ transform: 'scale(0.9)', transformOrigin: 'left center' }}>
+                          <button
+                            className="qty-btn"
+                            onClick={() => updateQuantity(itemKey, -1)}
+                            aria-label="Diminuir quantidade"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span className="qty-display">{quantity}</span>
+                          <button
+                            className="qty-btn"
+                            onClick={() => updateQuantity(itemKey, 1)}
+                            aria-label="Aumentar quantidade"
+                          >
+                            <Plus size={14} />
+                          </button>
                         </div>
-                        <button
-                          onClick={() => removeFromCart(product.id)}
-                          style={{ color: 'var(--text-muted)', cursor: 'pointer' }}
-                          title="Remover peça"
-                          aria-label="Remover peça"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div className="cart-item-price">
+                            R$ {(product.price * quantity).toFixed(2).replace('.', ',')}
+                          </div>
+                          <button
+                            onClick={() => removeFromCart(itemKey)}
+                            style={{ color: 'var(--text-muted)', cursor: 'pointer' }}
+                            title="Remover peça"
+                            aria-label="Remover peça"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Drawer Footer */}

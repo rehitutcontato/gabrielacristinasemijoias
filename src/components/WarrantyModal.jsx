@@ -139,8 +139,19 @@ export const WarrantyModal = ({ garantia, onClose }) => {
                   <div style={{ fontSize: '0.82rem', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {it.name}
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--gold-dark)' }}>
-                    {it.material} {it.quantity > 1 ? `• ${it.quantity} unidades` : ''}
+                  <div style={{ fontSize: '0.72rem', color: 'var(--gold-dark)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                    <span>{it.material}</span>
+                    {(it.tamanho || it.variation?.tamanho) && (
+                      <span style={{ background: 'var(--gold-light)', color: 'var(--gold-dark)', padding: '1px 6px', borderRadius: '4px', fontWeight: '600', fontSize: '0.68rem' }}>
+                        💍 Aro {it.tamanho || it.variation?.tamanho}
+                      </span>
+                    )}
+                    {(it.cor || it.variation?.cor) && (
+                      <span style={{ background: '#F3F4F6', color: '#4B5563', padding: '1px 6px', borderRadius: '4px', fontWeight: '500', fontSize: '0.68rem' }}>
+                        {it.cor || it.variation?.cor}
+                      </span>
+                    )}
+                    {it.quantity > 1 ? <span>• {it.quantity} un</span> : null}
                   </div>
                 </div>
                 {it.price > 0 && (

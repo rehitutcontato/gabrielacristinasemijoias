@@ -18,21 +18,32 @@ CREATE TABLE IF NOT EXISTS public.produtos (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     nome TEXT NOT NULL,
     categoria TEXT NOT NULL,
+    material TEXT NOT NULL DEFAULT 'Banho Ouro 18k',
     imagem_url TEXT NOT NULL,
     preco NUMERIC(10,2) NOT NULL,
     preco_promocional NUMERIC(10,2) NULL,
+    tamanhos JSONB NOT NULL DEFAULT '[]'::jsonb,
+    cores JSONB NOT NULL DEFAULT '[]'::jsonb,
     ativo BOOLEAN NOT NULL DEFAULT true,
     criado_em TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
+
+-- Migração para tabelas já existentes: adiciona colunas sem perda de dados
+ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS material TEXT DEFAULT 'Banho Ouro 18k';
+ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS tamanhos JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS cores JSONB DEFAULT '[]'::jsonb;
 
 -- Comentários das colunas para documentação do catálogo
 COMMENT ON TABLE public.produtos IS 'Tabela de produtos do Catálogo Digital GC Semijoias';
 COMMENT ON COLUMN public.produtos.id IS 'Identificador único do produto (UUID v4)';
 COMMENT ON COLUMN public.produtos.nome IS 'Nome comercial da semijoia';
 COMMENT ON COLUMN public.produtos.categoria IS 'Categoria (ex: Brincos, Colares, Pulseiras, Anéis, Conjuntos, Piercings)';
+COMMENT ON COLUMN public.produtos.material IS 'Tipo de banho ou material nobre (ex: Banho Ouro 18k, Ródio Branco, Prata 925)';
 COMMENT ON COLUMN public.produtos.imagem_url IS 'URL pública da fotografia da peça (Supabase Storage ou CDN)';
 COMMENT ON COLUMN public.produtos.preco IS 'Preço regular de venda (formato decimal 10,2)';
 COMMENT ON COLUMN public.produtos.preco_promocional IS 'Preço promocional opcional (formato decimal 10,2)';
+COMMENT ON COLUMN public.produtos.tamanhos IS 'Array JSON de tamanhos/aros disponíveis (ex: ["14", "16", "18", "20", "22"])';
+COMMENT ON COLUMN public.produtos.cores IS 'Array JSON de variações de cor/banho disponíveis';
 COMMENT ON COLUMN public.produtos.ativo IS 'Flag de disponibilidade na vitrine (true = Disponível / false = Esgotado)';
 COMMENT ON COLUMN public.produtos.criado_em IS 'Data e hora do cadastro do produto';
 

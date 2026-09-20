@@ -19,10 +19,12 @@ import {
   CheckCircle2,
   AlertTriangle,
   Trash2,
+  Edit3,
 } from 'lucide-react';
 import {
   obterProdutosAdmin,
   atualizarPrecos,
+  atualizarProdutoCompleto,
   alternarStatusProduto,
   cadastrarProduto,
   excluirProduto,
@@ -131,12 +133,19 @@ export function AdminPage({ onNavigateToStore }) {
   // Estados do formulário retrátil "+ Novo Produto"
   const [formName, setFormName] = useState('');
   const [formCategory, setFormCategory] = useState(CATEGORIES[0]);
+  const [formMaterial, setFormMaterial] = useState('Banho Ouro 18k');
   const [formPrice, setFormPrice] = useState('');
   const [formPromoPrice, setFormPromoPrice] = useState('');
   const [formImageFile, setFormImageFile] = useState(null);
   const [formImagePreview, setFormImagePreview] = useState('');
+  const [formTamanhos, setFormTamanhos] = useState([]);
+  const [formCores, setFormCores] = useState([]);
+  const [formCustomSize, setFormCustomSize] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+
+  // Estado para Edição Completa de Produto (Lápis)
+  const [editingProduct, setEditingProduct] = useState(null);
 
   // Carregar produtos da base
   const fetchAdminProducts = async () => {
@@ -340,7 +349,48 @@ export function AdminPage({ onNavigateToStore }) {
   };
 
   // --------------------------------------------------------------------------
-  // 4b. EXCLUSÃO DE PRODUTO
+  // 4b. EDIÇÃO COMPLETA DE PRODUTO (LÁPIS)
+  // --------------------------------------------------------------------------
+  const handleSaveFullProduct = async (productId, dados) => {
+    try {
+      await atualizarProdutoCompleto(productId, dados);
+      setProducts((prev) =>
+        prev.map((p) => {
+          if (p.id === productId) {
+            const numPreco = dados.preco !== undefined ? Number(dados.preco) : p.preco;
+            const numPromo = dados.preco_promocional !== undefined && dados.preco_promocional !== '' && dados.preco_promocional !== null
+              ? Number(dados.preco_promocional)
+              : null;
+            const effPrice = numPromo && numPromo > 0 ? numPromo : numPreco;
+            return {
+              ...p,
+              ...dados,
+              preco: numPreco,
+              price: effPrice,
+              preco_promocional: numPromo,
+              promotional_price: numPromo,
+              formatted_price: `R$ ${effPrice.toFixed(2).replace('.', ',')}`,
+              installments: `3x de R$ ${(effPrice / 3).toFixed(2).replace('.', ',')} sem juros`,
+              in_stock: dados.ativo !== undefined ? Boolean(dados.ativo) : p.in_stock,
+              ativo: dados.ativo !== undefined ? Boolean(dados.ativo) : p.ativo,
+              tamanhos: Array.isArray(dados.tamanhos) ? dados.tamanhos : (p.tamanhos || []),
+              cores: Array.isArray(dados.cores) ? dados.cores : (p.cores || []),
+            };
+          }
+          return p;
+        })
+      );
+      showToast('Peça e variações atualizadas com sucesso!');
+      setEditingProduct(null);
+    } catch (err) {
+      console.error('Erro ao atualizar produto:', err);
+      showToast('Erro ao atualizar peça.');
+      throw err;
+    }
+  };
+
+  // --------------------------------------------------------------------------
+  // 4c. EXCLUSÃO DE PRODUTO
   // --------------------------------------------------------------------------
   const [productToDelete, setProductToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -396,11 +446,14 @@ export function AdminPage({ onNavigateToStore }) {
       const formData = new FormData();
       formData.append('nome', formName.trim());
       formData.append('categoria', formCategory);
+      formData.append('material', formMaterial);
       formData.append('preco', formPrice);
       if (formPromoPrice) {
         formData.append('preco_promocional', formPromoPrice);
       }
       formData.append('foto', formImageFile);
+      formData.append('tamanhos', JSON.stringify(formTamanhos));
+      formData.append('cores', JSON.stringify(formCores));
 
       const result = await cadastrarProduto(formData);
 
@@ -411,6 +464,10 @@ export function AdminPage({ onNavigateToStore }) {
         setFormName('');
         setFormPrice('');
         setFormPromoPrice('');
+        setFormMaterial('Banho Ouro 18k');
+        setFormTamanhos([]);
+        setFormCores([]);
+        setFormCustomSize('');
         setFormImageFile(null);
         setFormImagePreview('');
         setIsModalOpen(false);
@@ -691,6 +748,7 @@ export function AdminPage({ onNavigateToStore }) {
                     product={product}
                     onToggleStatus={() => handleToggleStatus(product)}
                     onSavePrices={(preco, promo) => handleSavePrices(product.id, preco, promo)}
+                    onEdit={() => setEditingProduct(product)}
                     onDelete={() => setProductToDelete(product)}
                   />
                 ))}
@@ -885,6 +943,15 @@ export function AdminPage({ onNavigateToStore }) {
         )}
       </main>
 
+      {/* Modal de Edição Completa da Peça & Variações (Lápis) */}
+      {editingProduct && (
+        <AdminEditProductModal
+          product={editingProduct}
+          onClose={() => setEditingProduct(null)}
+          onSave={handleSaveFullProduct}
+        />
+      )}
+
       {/* Formulário Retrátil "+ Novo Produto" (Modal / Drawer) */}
       {isModalOpen && (
         <div className="admin-modal-backdrop" onClick={() => setIsModalOpen(false)}>
@@ -951,20 +1018,116 @@ export function AdminPage({ onNavigateToStore }) {
                 />
               </div>
 
-              {/* Categoria */}
-              <div className="admin-input-group">
-                <label className="admin-input-label">Categoria *</label>
-                <select
-                  className="admin-input-field"
-                  value={formCategory}
-                  onChange={(e) => setFormCategory(e.target.value)}
-                >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
+              {/* Categoria e Material */}
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div className="admin-input-group" style={{ flex: 1 }}>
+                  <label className="admin-input-label">Categoria *</label>
+                  <select
+                    className="admin-input-field"
+                    value={formCategory}
+                    onChange={(e) => setFormCategory(e.target.value)}
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="admin-input-group" style={{ flex: 1 }}>
+                  <label className="admin-input-label">Banho / Material *</label>
+                  <select
+                    className="admin-input-field"
+                    value={formMaterial}
+                    onChange={(e) => setFormMaterial(e.target.value)}
+                  >
+                    <option value="Banho Ouro 18k">Banho Ouro 18k</option>
+                    <option value="Ródio Branco">Ródio Branco</option>
+                    <option value="Banho Prata 925">Banho Prata 925</option>
+                    <option value="Banho Ouro 18k / Pedras">Banho Ouro 18k / Pedras</option>
+                    <option value="Ouro Rosé">Ouro Rosé</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Variações de Tamanho (Aros de anel ou tamanhos) */}
+              <div className="admin-input-group" style={{ background: '#FAF8F5', padding: '0.85rem', borderRadius: '12px', border: '1px solid #ECE7DF' }}>
+                <label className="admin-input-label" style={{ marginBottom: '4px' }}>
+                  Tamanhos / Aros Disponíveis (Opcional):
+                </label>
+                <span style={{ fontSize: '0.74rem', color: 'var(--admin-text-secondary)', display: 'block', marginBottom: '8px' }}>
+                  Clique para marcar os aros em estoque para essa peça:
+                </span>
+                <div className="admin-var-quick-pills">
+                  {['12', '14', '16', '18', '20', '22', '24', '26', 'Ajustável'].map((sz) => {
+                    const isSel = formTamanhos.includes(sz);
+                    return (
+                      <button
+                        key={sz}
+                        type="button"
+                        className={`admin-quick-size-btn ${isSel ? 'active' : ''}`}
+                        onClick={() => {
+                          if (isSel) setFormTamanhos(formTamanhos.filter((s) => s !== sz));
+                          else setFormTamanhos([...formTamanhos, sz]);
+                        }}
+                      >
+                        {sz} {isSel ? '✓' : '+'}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+                  <input
+                    type="text"
+                    className="admin-input-field"
+                    placeholder="Outro tamanho (ex: 45cm, P, M)..."
+                    value={formCustomSize}
+                    onChange={(e) => setFormCustomSize(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const v = formCustomSize.trim();
+                        if (v && !formTamanhos.includes(v)) {
+                          setFormTamanhos([...formTamanhos, v]);
+                          setFormCustomSize('');
+                        }
+                      }
+                    }}
+                    style={{ fontSize: '0.8rem', padding: '0.45rem 0.65rem' }}
+                  />
+                  <button
+                    type="button"
+                    className="admin-btn-secondary"
+                    onClick={() => {
+                      const v = formCustomSize.trim();
+                      if (v && !formTamanhos.includes(v)) {
+                        setFormTamanhos([...formTamanhos, v]);
+                        setFormCustomSize('');
+                      }
+                    }}
+                    style={{ padding: '0 12px', fontSize: '0.78rem' }}
+                  >
+                    + Add
+                  </button>
+                </div>
+
+                {formTamanhos.length > 0 && (
+                  <div className="admin-active-chips-list" style={{ marginTop: '8px' }}>
+                    {formTamanhos.map((tam) => (
+                      <span key={tam} className="admin-active-chip">
+                        {tam}
+                        <button
+                          type="button"
+                          onClick={() => setFormTamanhos(formTamanhos.filter((s) => s !== tam))}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Preço de Venda e Preço Promocional */}
@@ -1301,7 +1464,7 @@ export function AdminPage({ onNavigateToStore }) {
 // ----------------------------------------------------------------------------
 // COMPONENTE: LINHA / CARTÃO DE PRODUTO COMPACTO (MOBILE-FIRST)
 // ----------------------------------------------------------------------------
-function AdminProductRow({ product, onToggleStatus, onSavePrices, onDelete }) {
+function AdminProductRow({ product, onToggleStatus, onSavePrices, onEdit, onDelete }) {
   const isAtivo = product.ativo ?? product.in_stock ?? true;
   const initialPreco = product.preco ?? product.price ?? 0;
   const initialPromo = product.preco_promocional ?? product.promotional_price ?? '';
@@ -1333,9 +1496,12 @@ function AdminProductRow({ product, onToggleStatus, onSavePrices, onDelete }) {
     product.image ||
     '/images/placeholder.jpg';
 
+  const hasSizes = Array.isArray(product.tamanhos) && product.tamanhos.length > 0;
+  const hasCores = Array.isArray(product.cores) && product.cores.length > 0;
+
   return (
     <div className={`admin-product-row ${!isAtivo ? 'is-inactive' : ''}`}>
-      {/* Topo da linha: Foto + Nome/Categoria + Ações (Toggle + Excluir) */}
+      {/* Topo da linha: Foto + Nome/Categoria + Ações (Toggle + Lápis + Excluir) */}
       <div className="admin-product-row-top">
         <img
           src={imgSrc}
@@ -1352,11 +1518,11 @@ function AdminProductRow({ product, onToggleStatus, onSavePrices, onDelete }) {
             {product.nome || product.name}
           </h3>
           <span className="admin-product-category">
-            {product.categoria || product.category}
+            {product.categoria || product.category} • {product.material || 'Banho Nobre'}
           </span>
         </div>
 
-        {/* Grupo de Ações: Toggle Ativo/Esgotado + Lixeira */}
+        {/* Grupo de Ações: Toggle Ativo/Esgotado + Lápis de Edição + Lixeira */}
         <div className="admin-row-actions">
           <button
             type="button"
@@ -1375,6 +1541,17 @@ function AdminProductRow({ product, onToggleStatus, onSavePrices, onDelete }) {
             <span>{isAtivo ? 'Ativo' : 'Esgotado'}</span>
           </button>
 
+          {/* Botão de Edição Completa (Lápis) */}
+          <button
+            type="button"
+            className="admin-edit-btn"
+            onClick={onEdit}
+            title="Editar peça, preços e variações de tamanho/cor"
+            aria-label="Editar produto"
+          >
+            <Edit3 size={14} />
+          </button>
+
           <button
             type="button"
             className="admin-delete-btn"
@@ -1386,6 +1563,34 @@ function AdminProductRow({ product, onToggleStatus, onSavePrices, onDelete }) {
           </button>
         </div>
       </div>
+
+      {/* Variações de Tamanhos e Cores Cadastradas */}
+      {(hasSizes || hasCores) && (
+        <div className="admin-product-row-variations">
+          {hasSizes && (
+            <div className="admin-var-group">
+              <span className="admin-var-label">
+                {product.categoria === 'Anéis' ? 'Aros disp.:' : 'Tamanhos:'}
+              </span>
+              <div className="admin-var-chips">
+                {product.tamanhos.map((t) => (
+                  <span key={t} className="admin-var-chip">{t}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {hasCores && (
+            <div className="admin-var-group" style={{ marginTop: '3px' }}>
+              <span className="admin-var-label">Cores:</span>
+              <div className="admin-var-chips">
+                {product.cores.map((c) => (
+                  <span key={c} className="admin-var-chip color">{c}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Rodapé da linha: Inputs numéricos inline de Preço e Promocional */}
       <div className="admin-product-prices">
@@ -1426,6 +1631,445 @@ function AdminProductRow({ product, onToggleStatus, onSavePrices, onDelete }) {
             <Check size={16} />
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// COMPONENTE: MODAL DE EDIÇÃO COMPLETA DO PRODUTO & GERENCIADOR DE VARIAÇÕES
+// ----------------------------------------------------------------------------
+function AdminEditProductModal({ product, onClose, onSave }) {
+  const [nome, setNome] = useState(product.nome || product.name || '');
+  const [categoria, setCategoria] = useState(product.categoria || product.category || CATEGORIES[0]);
+  const [material, setMaterial] = useState(product.material || 'Banho Ouro 18k');
+  const [preco, setPreco] = useState(product.preco ?? product.price ?? '');
+  const [precoPromocional, setPrecoPromocional] = useState(product.preco_promocional ?? product.promotional_price ?? '');
+  const [ativo, setAtivo] = useState(product.ativo ?? product.in_stock ?? true);
+
+  // Variações
+  const [tamanhos, setTamanhos] = useState(Array.isArray(product.tamanhos) ? [...product.tamanhos] : []);
+  const [cores, setCores] = useState(Array.isArray(product.cores) ? [...product.cores] : []);
+
+  // UI state para adicionar variações (Inspirado no print da cliente)
+  const [propertyType, setPropertyType] = useState('tamanho'); // 'tamanho' | 'cor'
+  const [customSizeInput, setCustomSizeInput] = useState('');
+  const [customColorInput, setCustomColorInput] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Sugestões de aros para anéis
+  const RING_SIZES = ['12', '14', '16', '18', '20', '22', '24', '26', 'Ajustável', 'Único'];
+  const COMMON_COLORS = ['Banho Ouro 18k', 'Ródio Branco', 'Banho Prata 925', 'Ouro Rosé'];
+
+  const toggleSize = (sz) => {
+    if (tamanhos.includes(sz)) {
+      setTamanhos(tamanhos.filter((item) => item !== sz));
+    } else {
+      setTamanhos([...tamanhos, sz]);
+    }
+  };
+
+  const addCustomSize = (e) => {
+    e?.preventDefault();
+    const val = customSizeInput.trim();
+    if (val && !tamanhos.includes(val)) {
+      setTamanhos([...tamanhos, val]);
+      setCustomSizeInput('');
+    }
+  };
+
+  const toggleColor = (c) => {
+    if (cores.includes(c)) {
+      setCores(cores.filter((item) => item !== c));
+    } else {
+      setCores([...cores, c]);
+    }
+  };
+
+  const addCustomColor = (e) => {
+    e?.preventDefault();
+    const val = customColorInput.trim();
+    if (val && !cores.includes(val)) {
+      setCores([...cores, val]);
+      setCustomColorInput('');
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    if (!nome.trim()) {
+      setErrorMsg('Informe o nome da semijoia.');
+      return;
+    }
+    const numPreco = parseFloat(String(preco).replace(',', '.'));
+    if (isNaN(numPreco) || numPreco <= 0) {
+      setErrorMsg('Informe um preço de venda válido.');
+      return;
+    }
+
+    const numPromo = precoPromocional !== '' && precoPromocional !== null && precoPromocional !== undefined
+      ? parseFloat(String(precoPromocional).replace(',', '.'))
+      : null;
+
+    try {
+      setIsSaving(true);
+      await onSave(product.id, {
+        nome: nome.trim(),
+        categoria,
+        material,
+        preco: numPreco,
+        preco_promocional: numPromo,
+        ativo,
+        tamanhos,
+        cores,
+      });
+      onClose();
+    } catch (err) {
+      console.error('Erro ao atualizar produto:', err);
+      setErrorMsg(err.message || 'Erro ao salvar alterações.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="admin-modal-backdrop" onClick={onClose}>
+      <div className="admin-drawer admin-edit-drawer" onClick={(e) => e.stopPropagation()}>
+        <div className="admin-drawer-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Edit3 size={18} color="var(--admin-gold)" />
+            <h2 className="admin-drawer-title">Editar Peça & Variações</h2>
+          </div>
+          <button className="admin-drawer-close" onClick={onClose} aria-label="Fechar">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="admin-drawer-body">
+          {errorMsg && <div className="admin-auth-error">{errorMsg}</div>}
+
+          {/* Mini preview da peça */}
+          <div className="admin-edit-product-preview">
+            <img
+              src={product.imagem_url || product.local_image || product.image || '/images/placeholder.jpg'}
+              alt={product.nome || product.name}
+              className="admin-edit-preview-thumb"
+            />
+            <div>
+              <div style={{ fontWeight: '700', fontSize: '0.95rem' }}>{product.nome || product.name}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--admin-text-secondary)' }}>
+                {product.categoria || product.category} • ID: <code style={{ fontSize: '0.72rem' }}>{String(product.id).slice(0, 10)}...</code>
+              </div>
+            </div>
+          </div>
+
+          {/* Nome */}
+          <div className="admin-input-group">
+            <label className="admin-input-label">Nome da Semijoia *</label>
+            <input
+              type="text"
+              className="admin-input-field"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Categoria e Material */}
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div className="admin-input-group" style={{ flex: 1 }}>
+              <label className="admin-input-label">Categoria *</label>
+              <select
+                className="admin-input-field"
+                value={categoria}
+                onChange={(e) => setCategoria(e.target.value)}
+              >
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="admin-input-group" style={{ flex: 1 }}>
+              <label className="admin-input-label">Banho / Material *</label>
+              <select
+                className="admin-input-field"
+                value={material}
+                onChange={(e) => setMaterial(e.target.value)}
+              >
+                <option value="Banho Ouro 18k">Banho Ouro 18k</option>
+                <option value="Ródio Branco">Ródio Branco</option>
+                <option value="Banho Prata 925">Banho Prata 925</option>
+                <option value="Banho Ouro 18k / Pedras">Banho Ouro 18k / Pedras</option>
+                <option value="Ouro Rosé">Ouro Rosé</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Preços */}
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div className="admin-input-group" style={{ flex: 1 }}>
+              <label className="admin-input-label">Preço de Venda (R$) *</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className="admin-input-field"
+                value={preco}
+                onChange={(e) => setPreco(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="admin-input-group" style={{ flex: 1 }}>
+              <label className="admin-input-label">Preço Promocional (R$)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className="admin-input-field"
+                placeholder="Opcional"
+                value={precoPromocional}
+                onChange={(e) => setPrecoPromocional(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Status Ativo / Esgotado */}
+          <div className="admin-input-group" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.85rem', background: '#FAF8F5', borderRadius: '10px', border: '1px solid #ECE7DF' }}>
+            <div>
+              <span style={{ fontSize: '0.85rem', fontWeight: '600', display: 'block' }}>Disponibilidade na Vitrine:</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)' }}>
+                {ativo ? 'Peça visível com botão de compra' : 'Marcada como esgotada no catálogo'}
+              </span>
+            </div>
+            <button
+              type="button"
+              className={`admin-toggle-btn ${ativo ? 'active' : 'inactive'}`}
+              onClick={() => setAtivo(!ativo)}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: ativo ? '#10B981' : '#9CA3AF' }} />
+              <span>{ativo ? 'Ativo' : 'Esgotado'}</span>
+            </button>
+          </div>
+
+          {/* SEÇÃO GERENCIADOR DE VARIAÇÕES (Inspirada no print da cliente) */}
+          <div className="admin-variations-box">
+            <div className="admin-variations-header">
+              <h3 style={{ fontSize: '0.95rem', fontWeight: '700', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>✨ Criar & Editar Variações</span>
+              </h3>
+              <p style={{ fontSize: '0.76rem', color: 'var(--admin-text-secondary)', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+                Para criar variações, selecione a propriedade desejada (Tamanho ou Cor) e combine as opções disponíveis:
+              </p>
+            </div>
+
+            {/* Seletor dropdown / abas no estilo da imagem */}
+            <div className="admin-var-property-selector">
+              <label style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--admin-text-secondary)' }}>
+                Propriedade:
+              </label>
+              <select
+                className="admin-input-field"
+                value={propertyType}
+                onChange={(e) => setPropertyType(e.target.value)}
+                style={{ fontSize: '0.82rem', padding: '0.45rem 0.75rem' }}
+              >
+                <option value="tamanho">Tamanho / Aro</option>
+                <option value="cor">Cor / Banho</option>
+              </select>
+            </div>
+
+            {/* Painel: Tamanho */}
+            {propertyType === 'tamanho' && (
+              <div className="admin-var-panel">
+                <div style={{ fontSize: '0.78rem', fontWeight: '600', color: 'var(--admin-text-secondary)', marginBottom: '6px' }}>
+                  Aros comuns para anéis (clique para ativar/desativar):
+                </div>
+                <div className="admin-var-quick-pills">
+                  {RING_SIZES.map((sz) => {
+                    const isSelected = tamanhos.includes(sz);
+                    return (
+                      <button
+                        key={sz}
+                        type="button"
+                        className={`admin-quick-size-btn ${isSelected ? 'active' : ''}`}
+                        onClick={() => toggleSize(sz)}
+                      >
+                        {sz} {isSelected ? '✓' : '+'}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Input para tamanho customizado */}
+                <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
+                  <input
+                    type="text"
+                    className="admin-input-field"
+                    placeholder="Outro tamanho (ex: 15, 45cm, P, M)..."
+                    value={customSizeInput}
+                    onChange={(e) => setCustomSizeInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addCustomSize(e);
+                      }
+                    }}
+                    style={{ fontSize: '0.82rem', padding: '0.5rem 0.75rem' }}
+                  />
+                  <button
+                    type="button"
+                    className="admin-btn-secondary"
+                    onClick={addCustomSize}
+                    style={{ padding: '0 14px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                  >
+                    + Adicionar
+                  </button>
+                </div>
+
+                {/* Lista de tamanhos configurados */}
+                <div style={{ marginTop: '12px' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--admin-text-secondary)', marginBottom: '4px' }}>
+                    Tamanhos ativos para esta peça ({tamanhos.length}):
+                  </div>
+                  {tamanhos.length === 0 ? (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>
+                      Nenhum tamanho cadastrado. (A peça será vendida em tamanho único).
+                    </div>
+                  ) : (
+                    <div className="admin-active-chips-list">
+                      {tamanhos.map((tam) => (
+                        <span key={tam} className="admin-active-chip">
+                          <strong>{tam}</strong>
+                          <button
+                            type="button"
+                            onClick={() => toggleSize(tam)}
+                            title="Remover tamanho"
+                            aria-label={`Remover ${tam}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Painel: Cor */}
+            {propertyType === 'cor' && (
+              <div className="admin-var-panel">
+                <div style={{ fontSize: '0.78rem', fontWeight: '600', color: 'var(--admin-text-secondary)', marginBottom: '6px' }}>
+                  Banhos disponíveis para este modelo:
+                </div>
+                <div className="admin-var-quick-pills">
+                  {COMMON_COLORS.map((col) => {
+                    const isSelected = cores.includes(col);
+                    return (
+                      <button
+                        key={col}
+                        type="button"
+                        className={`admin-quick-size-btn ${isSelected ? 'active' : ''}`}
+                        onClick={() => toggleColor(col)}
+                      >
+                        {col} {isSelected ? '✓' : '+'}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Input para cor customizada */}
+                <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
+                  <input
+                    type="text"
+                    className="admin-input-field"
+                    placeholder="Outra cor ou acabamento..."
+                    value={customColorInput}
+                    onChange={(e) => setCustomColorInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addCustomColor(e);
+                      }
+                    }}
+                    style={{ fontSize: '0.82rem', padding: '0.5rem 0.75rem' }}
+                  />
+                  <button
+                    type="button"
+                    className="admin-btn-secondary"
+                    onClick={addCustomColor}
+                    style={{ padding: '0 14px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                  >
+                    + Adicionar
+                  </button>
+                </div>
+
+                {/* Lista de cores configuradas */}
+                <div style={{ marginTop: '12px' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--admin-text-secondary)', marginBottom: '4px' }}>
+                    Variações de cores ativas ({cores.length}):
+                  </div>
+                  {cores.length === 0 ? (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>
+                      Nenhuma cor adicional. (Usará o banho principal definido acima).
+                    </div>
+                  ) : (
+                    <div className="admin-active-chips-list">
+                      {cores.map((cor) => (
+                        <span key={cor} className="admin-active-chip">
+                          <strong>{cor}</strong>
+                          <button
+                            type="button"
+                            onClick={() => toggleColor(cor)}
+                            title="Remover cor"
+                            aria-label={`Remover ${cor}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Botões de Ação */}
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+            <button
+              type="button"
+              className="admin-btn-ghost"
+              onClick={onClose}
+              style={{ flex: 1, justifyContent: 'center' }}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="admin-btn-primary"
+              disabled={isSaving}
+              style={{ flex: 2 }}
+            >
+              {isSaving ? (
+                <>
+                  <RefreshCw size={16} className="spin-animation" />
+                  <span>Salvando no Banco...</span>
+                </>
+              ) : (
+                <>
+                  <Check size={16} />
+                  <span>Salvar Alterações</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

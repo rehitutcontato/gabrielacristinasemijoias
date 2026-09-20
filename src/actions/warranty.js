@@ -73,7 +73,10 @@ export function emitirGarantia({
       material: item.product?.material || item.material || 'Banho Nobre',
       price: item.product?.price ?? item.price ?? 0,
       quantity: item.quantity || 1,
-      image: item.product?.local_image || item.product?.image || item.image || '/images/logo-brand.png'
+      image: item.product?.local_image || item.product?.image || item.image || '/images/logo-brand.png',
+      variation: item.variation || null,
+      tamanho: item.variation?.tamanho || item.tamanho || null,
+      cor: item.variation?.cor || item.cor || null,
     })),
     status: 'ativa'
   };
@@ -127,7 +130,14 @@ export function gerarTextoWhatsAppGarantia(garantia) {
 
   msg += `💎 *Peças Adquiridas:*\n`;
   garantia.itens.forEach((it) => {
-    msg += `• *${it.quantity}x* ${it.name}\n`;
+    let details = [];
+    const tam = it.tamanho || it.variation?.tamanho;
+    const cor = it.cor || it.variation?.cor;
+    if (tam) details.push(`Aro/Tamanho: ${tam}`);
+    if (cor) details.push(`Cor: ${cor}`);
+    const detailsStr = details.length > 0 ? ` [${details.join(' • ')}]` : '';
+
+    msg += `• *${it.quantity}x* ${it.name}${detailsStr}\n`;
     msg += `   Acabamento: ${it.material}\n`;
   });
 

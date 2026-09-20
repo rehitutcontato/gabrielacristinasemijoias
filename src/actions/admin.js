@@ -90,16 +90,53 @@ export function mapSupabaseProduct(p) {
   const installmentVal = (effectivePrice / 3).toFixed(2).replace('.', ',');
   const installments = `3x de R$ ${installmentVal} sem juros`;
 
-  let material = p.material || 'Banho Ouro 18k';
+  let material = p.material;
   const nameLower = (p.nome || p.name || '').toLowerCase();
-  if (nameLower.includes('ródio') || nameLower.includes('rodio')) {
-    material = 'Ródio Branco';
-  } else if (nameLower.includes('prata')) {
-    material = 'Banho Prata 925';
-  } else if (nameLower.includes('ouro')) {
-    material = 'Banho Ouro 18k';
-  } else if (nameLower.includes('ônix') || nameLower.includes('onix') || nameLower.includes('pedra')) {
-    material = 'Banho Ouro 18k / Pedras';
+  const catLower = (p.categoria || p.category || '').toLowerCase();
+
+  if (!material) {
+    if (nameLower.includes('ródio') || nameLower.includes('rodio')) {
+      material = 'Ródio Branco';
+    } else if (nameLower.includes('prata')) {
+      material = 'Banho Prata 925';
+    } else if (nameLower.includes('ouro')) {
+      material = 'Banho Ouro 18k';
+    } else if (nameLower.includes('ônix') || nameLower.includes('onix') || nameLower.includes('pedra')) {
+      material = 'Banho Ouro 18k / Pedras';
+    } else {
+      material = 'Banho Ouro 18k';
+    }
+  }
+
+  // Parseia tamanhos se existirem ou fornece grade padrão para anéis
+  let tamanhos = [];
+  if (p.tamanhos) {
+    if (Array.isArray(p.tamanhos)) {
+      tamanhos = p.tamanhos;
+    } else if (typeof p.tamanhos === 'string') {
+      try {
+        tamanhos = JSON.parse(p.tamanhos);
+      } catch {
+        tamanhos = p.tamanhos.split(',').map((s) => s.trim()).filter(Boolean);
+      }
+    }
+  }
+  // Se for anel e não possuir tamanhos customizados definidos ainda, sugere a grade clássica brasileira
+  if ((!tamanhos || tamanhos.length === 0) && (catLower.includes('anéis') || catLower.includes('anel') || nameLower.includes('anel'))) {
+    tamanhos = ['14', '16', '18', '20', '22'];
+  }
+
+  let cores = [];
+  if (p.cores) {
+    if (Array.isArray(p.cores)) {
+      cores = p.cores;
+    } else if (typeof p.cores === 'string') {
+      try {
+        cores = JSON.parse(p.cores);
+      } catch {
+        cores = p.cores.split(',').map((s) => s.trim()).filter(Boolean);
+      }
+    }
   }
 
   const isAtivo = p.ativo !== undefined ? Boolean(p.ativo) : (p.in_stock ?? true);
@@ -123,6 +160,8 @@ export function mapSupabaseProduct(p) {
     in_stock: isAtivo,
     ativo: isAtivo,
     material,
+    tamanhos,
+    cores,
     criado_em: p.criado_em,
   };
 }
@@ -131,18 +170,29 @@ export function mapSupabaseProduct(p) {
  * Aplica overrides salvos localmente sobre um produto
  */
 function applyOverrides(product, overrides) {
+  const mapped = mapSupabaseProduct(product);
   const o = overrides[product.id];
-  if (!o) return mapSupabaseProduct(product);
+  if (!o) return mapped;
 
-  const basePrice = o.preco !== undefined ? Number(o.preco) : (Number(product.preco ?? product.price) || 0);
-  const rawPromo = o.preco_promocional !== undefined ? o.preco_promocional : (product.preco_promocional ?? product.promotional_price);
+  const basePrice = o.preco !== undefined ? Number(o.preco) : mapped.preco;
+  const rawPromo = o.preco_promocional !== undefined ? o.preco_promocional : mapped.preco_promocional;
   const promoPrice = rawPromo != null && rawPromo !== '' ? Number(rawPromo) : null;
   const effectivePrice = promoPrice && promoPrice > 0 ? promoPrice : basePrice;
 
-  const isAtivo = o.ativo !== undefined ? Boolean(o.ativo) : (product.ativo ?? product.in_stock ?? true);
+  const isAtivo = o.ativo !== undefined ? Boolean(o.ativo) : mapped.ativo;
+  const nome = o.nome || o.name || mapped.nome;
+  const categoria = o.categoria || o.category || mapped.categoria;
+  const material = o.material || mapped.material;
+  const tamanhos = o.tamanhos !== undefined ? (Array.isArray(o.tamanhos) ? o.tamanhos : []) : mapped.tamanhos;
+  const cores = o.cores !== undefined ? (Array.isArray(o.cores) ? o.cores : []) : mapped.cores;
 
   return {
-    ...mapSupabaseProduct(product),
+    ...mapped,
+    nome,
+    name: nome,
+    categoria,
+    category: categoria,
+    material,
     preco: basePrice,
     price: effectivePrice,
     original_price: promoPrice ? basePrice : null,
@@ -152,11 +202,83 @@ function applyOverrides(product, overrides) {
     installments: `3x de R$ ${(effectivePrice / 3).toFixed(2).replace('.', ',')} sem juros`,
     in_stock: isAtivo,
     ativo: isAtivo,
+    tamanhos,
+    cores,
   };
 }
 
 /**
- * 1. Atualizar Preços de um Produto
+ * Atualiza todas as propriedades de um produto (Nome, Categoria, Material, Preços, Status, Tamanhos e Cores)
+ */
+export async function atualizarProdutoCompleto(id, dados) {
+  if (!id) throw new Error('ID do produto não informado.');
+
+  const numPreco = dados.preco !== undefined && dados.preco !== '' ? Number(dados.preco) : undefined;
+  const numPromo = dados.preco_promocional !== undefined && dados.preco_promocional !== null && dados.preco_promocional !== ''
+    ? Number(dados.preco_promocional)
+    : null;
+
+  // 1. Salvar no localStorage overrides
+  const overrides = getLocalOverrides();
+  overrides[id] = {
+    ...(overrides[id] || {}),
+    ...(dados.nome ? { nome: dados.nome.trim() } : {}),
+    ...(dados.categoria ? { categoria: dados.categoria.trim() } : {}),
+    ...(dados.material ? { material: dados.material.trim() } : {}),
+    ...(numPreco !== undefined && !isNaN(numPreco) ? { preco: numPreco } : {}),
+    preco_promocional: numPromo,
+    ...(dados.ativo !== undefined ? { ativo: Boolean(dados.ativo) } : {}),
+    ...(dados.tamanhos !== undefined ? { tamanhos: Array.isArray(dados.tamanhos) ? dados.tamanhos : [] } : {}),
+    ...(dados.cores !== undefined ? { cores: Array.isArray(dados.cores) ? dados.cores : [] } : {}),
+  };
+  saveLocalOverrides(overrides);
+
+  // Também atualiza se for produto customizado salvo localmente
+  const customs = getCustomProducts();
+  const customIdx = customs.findIndex((c) => c.id === id);
+  if (customIdx !== -1) {
+    customs[customIdx] = {
+      ...customs[customIdx],
+      ...overrides[id],
+    };
+    saveCustomProducts(customs);
+  }
+
+  // 2. Persistir no Supabase se configurado
+  const client = getSupabaseClient();
+  if (client) {
+    try {
+      const updatePayload = {};
+      if (dados.nome) updatePayload.nome = dados.nome.trim();
+      if (dados.categoria) updatePayload.categoria = dados.categoria.trim();
+      if (dados.material) updatePayload.material = dados.material.trim();
+      if (numPreco !== undefined && !isNaN(numPreco)) updatePayload.preco = numPreco;
+      updatePayload.preco_promocional = numPromo;
+      if (dados.ativo !== undefined) updatePayload.ativo = Boolean(dados.ativo);
+      if (dados.tamanhos !== undefined) updatePayload.tamanhos = dados.tamanhos;
+      if (dados.cores !== undefined) updatePayload.cores = dados.cores;
+
+      const { error } = await client
+        .from('produtos')
+        .update(updatePayload)
+        .eq('id', id);
+
+      if (error) {
+        console.warn('Aviso ao sincronizar produto no Supabase (salvo localmente):', error.message);
+      }
+    } catch (err) {
+      console.warn('Erro ao conectar ao Supabase para atualizar produto:', err);
+    }
+  }
+
+  await revalidatePath('/');
+  await revalidatePath('/admin');
+
+  return { success: true, id, overrides: overrides[id] };
+}
+
+/**
+ * 1. Atualizar Preços de um Produto (Inline)
  */
 export async function atualizarPrecos(id, preco, precoPromocional = null) {
   if (!id) throw new Error('ID do produto não informado.');
@@ -334,13 +456,36 @@ export async function cadastrarProduto(formData) {
     }
   }
 
+  const material = formData.get('material') || 'Banho Ouro 18k';
+  const tamanhosRaw = formData.get('tamanhos');
+  let tamanhos = [];
+  if (tamanhosRaw) {
+    try {
+      tamanhos = typeof tamanhosRaw === 'string' ? JSON.parse(tamanhosRaw) : tamanhosRaw;
+    } catch {
+      tamanhos = String(tamanhosRaw).split(',').map((s) => s.trim()).filter(Boolean);
+    }
+  }
+  const coresRaw = formData.get('cores');
+  let cores = [];
+  if (coresRaw) {
+    try {
+      cores = typeof coresRaw === 'string' ? JSON.parse(coresRaw) : coresRaw;
+    } catch {
+      cores = String(coresRaw).split(',').map((s) => s.trim()).filter(Boolean);
+    }
+  }
+
   const newProductData = {
     id: `prod-${Date.now()}`,
     nome: String(nome).trim(),
     categoria: String(categoria).trim(),
+    material: String(material).trim(),
     imagem_url,
     preco,
     preco_promocional,
+    tamanhos,
+    cores,
     ativo: true,
     criado_em: new Date().toISOString(),
   };
@@ -354,9 +499,12 @@ export async function cadastrarProduto(formData) {
           {
             nome: newProductData.nome,
             categoria: newProductData.categoria,
+            material: newProductData.material,
             imagem_url: newProductData.imagem_url,
             preco: newProductData.preco,
             preco_promocional: newProductData.preco_promocional,
+            tamanhos: newProductData.tamanhos,
+            cores: newProductData.cores,
             ativo: true,
           },
         ])

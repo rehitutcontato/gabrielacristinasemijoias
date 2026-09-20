@@ -7,17 +7,44 @@ export const ProductModal = ({ product, onClose }) => {
   const { addToCart, isFavorited, toggleFavorite, getDirectProductWhatsAppUrl } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(product?.lifestyle_image || product?.local_image || product?.image);
+  const [selectedSize, setSelectedSize] = useState(() => {
+    if (product?.tamanhos && product.tamanhos.length === 1) {
+      return product.tamanhos[0];
+    }
+    return '';
+  });
+  const [selectedCor, setSelectedCor] = useState(() => {
+    if (product?.cores && product.cores.length === 1) {
+      return product.cores[0];
+    }
+    return '';
+  });
+  const [validationError, setValidationError] = useState('');
 
   if (!product) return null;
 
   const favorited = isFavorited(product.id);
+  const hasSizes = Array.isArray(product.tamanhos) && product.tamanhos.length > 0;
+  const hasCores = Array.isArray(product.cores) && product.cores.length > 0;
 
   const handleAdd = () => {
-    addToCart(product, quantity);
+    if (hasSizes && !selectedSize) {
+      setValidationError(
+        product.category === 'Anéis'
+          ? 'Por favor, selecione o aro do anel antes de adicionar à sacola.'
+          : 'Por favor, selecione o tamanho desejado antes de adicionar à sacola.'
+      );
+      return;
+    }
+    setValidationError('');
+    addToCart(product, quantity, { tamanho: selectedSize, cor: selectedCor });
     onClose();
   };
 
-  const directWhatsAppUrl = getDirectProductWhatsAppUrl(product, quantity);
+  const directWhatsAppUrl = getDirectProductWhatsAppUrl(product, quantity, {
+    tamanho: selectedSize,
+    cor: selectedCor,
+  });
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -97,6 +124,70 @@ export const ProductModal = ({ product, onClose }) => {
                 </div>
               </div>
 
+              {/* Seletor de Tamanhos / Aros */}
+              {hasSizes && (
+                <div className="modal-variation-block">
+                  <div className="modal-variation-header">
+                    <span className="modal-variation-title">
+                      {product.category === 'Anéis' ? 'Aro do Anel:' : 'Tamanho:'}
+                    </span>
+                    {selectedSize ? (
+                      <span className="modal-variation-selected">
+                        {product.category === 'Anéis' ? `Aro ${selectedSize}` : selectedSize}
+                      </span>
+                    ) : (
+                      <span className="modal-variation-hint">Selecione uma opção</span>
+                    )}
+                  </div>
+                  <div className="modal-size-pills">
+                    {product.tamanhos.map((tam) => (
+                      <button
+                        key={tam}
+                        type="button"
+                        className={`size-pill-btn ${selectedSize === tam ? 'selected' : ''}`}
+                        onClick={() => {
+                          setSelectedSize(tam);
+                          setValidationError('');
+                        }}
+                      >
+                        {tam}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Seletor de Cores / Variações */}
+              {hasCores && (
+                <div className="modal-variation-block">
+                  <div className="modal-variation-header">
+                    <span className="modal-variation-title">Variação / Banho:</span>
+                    {selectedCor && (
+                      <span className="modal-variation-selected">{selectedCor}</span>
+                    )}
+                  </div>
+                  <div className="modal-size-pills">
+                    {product.cores.map((cor) => (
+                      <button
+                        key={cor}
+                        type="button"
+                        className={`size-pill-btn ${selectedCor === cor ? 'selected' : ''}`}
+                        onClick={() => setSelectedCor(cor)}
+                      >
+                        {cor}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Alerta de validação */}
+              {validationError && (
+                <div className="modal-size-alert">
+                  <span>{validationError}</span>
+                </div>
+              )}
+
               {/* Quality & Warranty Checklist */}
               <ul className="modal-features-list">
                 <li>
@@ -109,7 +200,7 @@ export const ProductModal = ({ product, onClose }) => {
                 </li>
                 <li>
                   <Check size={16} />
-                  <span>Acompanha <strong>Certificado de 1 Ano de Garantia</strong></span>
+                  <span>Acompanha <strong>Certificado de Garantia Oficial</strong></span>
                 </li>
                 <li>
                   <Check size={16} />
