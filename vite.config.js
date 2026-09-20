@@ -7,5 +7,8 @@ export default defineConfig({
   server: {
     port: 3000,
     open: false
+  },
+  define: {
+    'process.env.ADMIN_PASSWORD': JSON.stringify(process.env.ADMIN_PASSWORD || process.env.VITE_ADMIN_PASSWORD || 'gcsemijoias2025')
   }
 })

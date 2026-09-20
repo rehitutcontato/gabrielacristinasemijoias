@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { PRODUCTS } from './data/products';
+import { obterProdutosVitrine } from './actions/admin';
 import { useCart } from './context/CartContext';
 import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
@@ -12,6 +13,7 @@ import { WhatsAppFloating } from './components/WhatsAppFloating';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { Toast } from './components/Toast';
 import { Footer } from './components/Footer';
+import { AdminPage } from './components/admin/AdminPage';
 
 const CATEGORIES = [
   'Todos',
@@ -24,7 +26,44 @@ const CATEGORIES = [
 ];
 
 export function App() {
+  // --------------------------------------------------------------------------
+  // ROTEAMENTO SIMPLES (CLIENT-SIDE ROUTER: / ou /admin)
+  // --------------------------------------------------------------------------
+  const [currentPath, setCurrentPath] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.location.pathname;
+    }
+    return '/';
+  });
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigate = (path) => {
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', path);
+      setCurrentPath(path);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Se a rota for /admin, renderiza o Painel Administrativo
+  if (currentPath.startsWith('/admin')) {
+    return <AdminPage onNavigateToStore={() => navigate('/')} />;
+  }
+
+  // --------------------------------------------------------------------------
+  // VITRINE PÚBLICA (ESTADOS E CARREGAMENTO DO BANCO SUPABASE)
+  // --------------------------------------------------------------------------
   const { favorites } = useCart();
+
+  const [products, setProducts] = useState(PRODUCTS);
+  const [isLoadingDynamic, setIsLoadingDynamic] = useState(false);
 
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [selectedMaterial, setSelectedMaterial] = useState('Todos');
@@ -34,73 +73,122 @@ export function App() {
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [activeMobileTab, setActiveMobileTab] = useState('home');
 
-  // Compute category counts
+  // Busca os produtos dinâmicos no Supabase onde ativo = true
+  const fetchVitrineProducts = async () => {
+    try {
+      setIsLoadingDynamic(true);
+      const dynamicList = await obterProdutosVitrine();
+      if (dynamicList && dynamicList.length > 0) {
+        setProducts(dynamicList);
+      }
+    } catch (err) {
+      console.warn('Falha ao carregar produtos do banco, mantendo catálogo local:', err);
+    } finally {
+      setIsLoadingDynamic(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVitrineProducts();
+
+    // Revalidação em tempo real caso ocorra alteração via Admin Actions
+    const handleRevalidate = () => {
+      fetchVitrineProducts();
+    };
+    window.addEventListener('gc-catalog-revalidate', handleRevalidate);
+    return () => window.removeEventListener('gc-catalog-revalidate', handleRevalidate);
+  }, []);
+
+  // Contagem dinâmica por categoria
   const categoryCounts = useMemo(() => {
-    const counts = { Todos: PRODUCTS.length };
+    const counts = { Todos: products.length };
     CATEGORIES.forEach((cat) => {
       if (cat !== 'Todos') {
-        counts[cat] = PRODUCTS.filter((p) => p.category === cat).length;
+        counts[cat] = products.filter(
+          (p) => (p.category || p.categoria) === cat
+        ).length;
       }
     });
     return counts;
-  }, []);
+  }, [products]);
 
-  // Filter & Sort Products
+  // Filtragem e Ordenação da Vitrine
   const filteredProducts = useMemo(() => {
-    let list = [...PRODUCTS];
+    let list = [...products];
 
-    // If on favorites tab
+    // Aba de favoritos no mobile
     if (activeMobileTab === 'favorites') {
       list = list.filter((p) => favorites.includes(p.id));
     } else {
-      // Category filter
+      // Filtro por categoria
       if (selectedCategory !== 'Todos') {
-        list = list.filter((p) => p.category === selectedCategory);
+        list = list.filter(
+          (p) => (p.category || p.categoria) === selectedCategory
+        );
       }
     }
 
-    // Material filter
+    // Filtro por material / banho
     if (selectedMaterial !== 'Todos') {
-      list = list.filter((p) => p.material.toLowerCase().includes(selectedMaterial.toLowerCase()));
+      list = list.filter((p) =>
+        (p.material || '').toLowerCase().includes(selectedMaterial.toLowerCase())
+      );
     }
 
-    // In-stock only
+    // Apenas disponíveis em estoque (ativo = true)
     if (onlyInStock) {
-      list = list.filter((p) => p.in_stock);
+      list = list.filter((p) => p.in_stock || p.ativo);
     }
 
-    // Search query
+    // Busca rápida em tempo real
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(
         (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q) ||
-          p.material.toLowerCase().includes(q)
+          (p.name || p.nome || '').toLowerCase().includes(q) ||
+          (p.category || p.categoria || '').toLowerCase().includes(q) ||
+          (p.material || '').toLowerCase().includes(q)
       );
     }
 
-    // Sorting
+    // Ordenação
     list.sort((a, b) => {
-      // In-stock items prioritized
-      if (a.in_stock !== b.in_stock) {
-        return a.in_stock ? -1 : 1;
+      const aStock = a.in_stock ?? a.ativo ?? true;
+      const bStock = b.in_stock ?? b.ativo ?? true;
+
+      // Itens em estoque têm prioridade
+      if (aStock !== bStock) {
+        return aStock ? -1 : 1;
       }
 
+      const aPrice = a.price ?? a.preco ?? 0;
+      const bPrice = b.price ?? b.preco ?? 0;
+
       if (sortBy === 'price-asc') {
-        return a.price - b.price;
+        return aPrice - bPrice;
       }
       if (sortBy === 'price-desc') {
-        return b.price - a.price;
+        return bPrice - aPrice;
       }
       if (sortBy === 'name-asc') {
-        return a.name.localeCompare(b.name);
+        const aName = a.name || a.nome || '';
+        const bName = b.name || b.nome || '';
+        return aName.localeCompare(bName);
       }
-      return 0; // default order
+      return 0;
     });
 
     return list;
-  }, [selectedCategory, selectedMaterial, sortBy, onlyInStock, searchQuery, activeMobileTab, favorites]);
+  }, [
+    products,
+    selectedCategory,
+    selectedMaterial,
+    sortBy,
+    onlyInStock,
+    searchQuery,
+    activeMobileTab,
+    favorites,
+  ]);
 
   const handleSelectCategory = (cat) => {
     setSelectedCategory(cat);
@@ -214,9 +302,12 @@ export function App() {
         <TrustBadges />
       </main>
 
-      <Footer onSelectCategory={handleSelectCategory} />
+      <Footer
+        onSelectCategory={handleSelectCategory}
+        onNavigateAdmin={() => navigate('/admin')}
+      />
 
-      {/* Modals & Floating Tools */}
+      {/* Modals & Ferramentas Flutuantes */}
       {quickViewProduct && (
         <ProductModal
           product={quickViewProduct}
@@ -234,4 +325,5 @@ export function App() {
     </div>
   );
 }
+
 export default App;

@@ -1,0 +1,681 @@
+/* ==============================================================================
+   GC SEMIJOIAS — PAINEL ADMINISTRATIVO (MOBILE-FIRST LUXURY)
+   ============================================================================== */
+
+:root {
+  --admin-gold: #C5A059;
+  --admin-gold-hover: #B38E46;
+  --admin-gold-light: #F4ECE1;
+  --admin-gold-border: rgba(197, 160, 89, 0.25);
+  --admin-bg: #FAF8F5;
+  --admin-card-bg: #FFFFFF;
+  --admin-text-primary: #1A1A1A;
+  --admin-text-secondary: #666666;
+  --admin-text-muted: #8E8E93;
+  --admin-success: #10B981;
+  --admin-success-light: #ECFDF5;
+  --admin-danger: #EF4444;
+  --admin-danger-light: #FEF2F2;
+  --admin-radius: 16px;
+  --admin-radius-sm: 10px;
+  --admin-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.admin-layout {
+  min-height: 100vh;
+  background-color: var(--admin-bg);
+  color: var(--admin-text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  padding-bottom: 5rem;
+}
+
+/* ==============================================================================
+   BARREIRA DE ACESSO POR SENHA / PIN GATE
+   ============================================================================== */
+.admin-auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: radial-gradient(circle at top, #FFFDF9 0%, #F5EFE6 100%);
+}
+
+.admin-auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 2.2rem 1.8rem;
+  box-shadow: 0 10px 40px rgba(197, 160, 89, 0.12), 0 2px 10px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--admin-gold-border);
+  text-align: center;
+}
+
+.admin-auth-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  background: var(--admin-gold-light);
+  color: var(--admin-gold-hover);
+  border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 1.2rem;
+}
+
+.admin-auth-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.6rem;
+  color: #2A241E;
+  margin-bottom: 0.4rem;
+}
+
+.admin-auth-subtitle {
+  font-size: 0.85rem;
+  color: var(--admin-text-secondary);
+  margin-bottom: 1.8rem;
+  line-height: 1.4;
+}
+
+.admin-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-input-group {
+  position: relative;
+  text-align: left;
+}
+
+.admin-input-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #4A453E;
+  margin-bottom: 0.4rem;
+}
+
+.admin-password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.admin-input-field {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid #E2D9CC;
+  font-size: 0.95rem;
+  background: #FCFAF8;
+  color: var(--admin-text-primary);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.admin-input-field:focus {
+  border-color: var(--admin-gold);
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.15);
+}
+
+.admin-password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.admin-btn-primary {
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: var(--admin-radius-sm);
+  background: linear-gradient(135deg, #C5A059 0%, #A6823B 100%);
+  color: #FFFFFF;
+  border: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 14px rgba(197, 160, 89, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-btn-primary:active {
+  transform: scale(0.98);
+}
+
+.admin-btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.admin-auth-error {
+  font-size: 0.8rem;
+  color: var(--admin-danger);
+  background: var(--admin-danger-light);
+  padding: 0.6rem;
+  border-radius: 8px;
+  margin-top: 0.2rem;
+}
+
+/* ==============================================================================
+   BARRA DE CONTROLE SUPERIOR (HEADER)
+   ============================================================================== */
+.admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--admin-gold-border);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.admin-header-inner {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-store-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.admin-store-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--admin-gold-light);
+  color: var(--admin-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-store-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #2A241E;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.admin-store-subtitle {
+  font-size: 0.68rem;
+  color: var(--admin-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.admin-active-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--admin-success-light);
+  color: #047857;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.admin-active-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--admin-success);
+}
+
+.admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #E5E0D8;
+  background: #FFFFFF;
+  color: var(--admin-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.admin-btn-ghost:hover {
+  background: #FAF7F2;
+  color: var(--admin-text-primary);
+}
+
+/* ==============================================================================
+   CONTAINER PRINCIPAL
+   ============================================================================== */
+.admin-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* ==============================================================================
+   BUSCA RÁPIDA & AÇÃO NOVO PRODUTO
+   ============================================================================== */
+.admin-tools-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.admin-search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--admin-text-muted);
+  pointer-events: none;
+}
+
+.admin-search-input {
+  width: 100%;
+  padding: 0.75rem 2.2rem 0.75rem 2.6rem;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid #E5E0D8;
+  background: #FFFFFF;
+  font-size: 0.9rem;
+  color: var(--admin-text-primary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.admin-search-input:focus {
+  border-color: var(--admin-gold);
+}
+
+.admin-search-clear {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.admin-btn-add-product {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  background: linear-gradient(135deg, #1C1917 0%, #292524 100%);
+  color: #F5EFE6;
+  border: 1px solid rgba(197, 160, 89, 0.3);
+  border-radius: var(--admin-radius-sm);
+  font-weight: 600;
+  font-size: 0.92rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.admin-btn-add-product:active {
+  transform: scale(0.98);
+}
+
+/* ==============================================================================
+   DRAWER / MODAL RETRÁTIL "+ NOVO PRODUTO"
+   ============================================================================== */
+.admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@media (min-width: 600px) {
+  .admin-modal-backdrop {
+    align-items: center;
+    padding: 1.5rem;
+  }
+}
+
+.admin-drawer {
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  background: #FFFFFF;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.25s ease-out;
+}
+
+@media (min-width: 600px) {
+  .admin-drawer {
+    border-radius: 20px;
+  }
+}
+
+.admin-drawer-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #EFEAE3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-drawer-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #2A241E;
+  margin: 0;
+}
+
+.admin-drawer-close {
+  background: #F4EFEA;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+}
+
+.admin-drawer-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Image Upload & Instant Preview */
+.admin-image-upload-box {
+  border: 2px dashed #DCD5CA;
+  border-radius: 14px;
+  padding: 1.25rem;
+  text-align: center;
+  background: #FAF7F2;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.admin-image-upload-box:hover {
+  border-color: var(--admin-gold);
+}
+
+.admin-image-preview {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.admin-image-change-btn {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #FFF;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--admin-text-secondary);
+}
+
+.admin-image-placeholder svg {
+  color: var(--admin-gold);
+}
+
+/* ==============================================================================
+   LISTA DE PRODUTOS COMPACTA (MOBILE-FIRST)
+   ============================================================================== */
+.admin-product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-product-row {
+  background: #FFFFFF;
+  border-radius: 14px;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #ECE7DF;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-product-row.is-inactive {
+  opacity: 0.65;
+  background: #FDFBF8;
+}
+
+.admin-product-row-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-product-thumb {
+  width: 58px;
+  height: 58px;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  object-fit: cover;
+  background: #F3EFEA;
+  border: 1px solid rgba(197, 160, 89, 0.2);
+  flex-shrink: 0;
+}
+
+.admin-product-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-product-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #24201C;
+  margin: 0 0 0.2rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-product-category {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--admin-gold-hover);
+  background: var(--admin-gold-light);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+/* Status Toggle Switch */
+.admin-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.admin-toggle-btn.active {
+  background: var(--admin-success-light);
+  color: #065F46;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.admin-toggle-btn.inactive {
+  background: #F3F4F6;
+  color: #4B5563;
+  border: 1px solid #E5E7EB;
+}
+
+/* Inline Price Controls */
+.admin-product-prices {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.4rem;
+  border-top: 1px dashed #EFEBE4;
+}
+
+.admin-price-input-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #FBF9F6;
+  border: 1px solid #E5E0D8;
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.admin-price-input-box:focus-within {
+  border-color: var(--admin-gold);
+  background: #FFFFFF;
+}
+
+.admin-price-input-box.saved {
+  border-color: var(--admin-success);
+  background: var(--admin-success-light);
+}
+
+.admin-price-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--admin-text-secondary);
+  margin-right: 0.35rem;
+  white-space: nowrap;
+}
+
+.admin-price-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--admin-text-primary);
+  outline: none;
+}
+
+.admin-save-indicator {
+  color: var(--admin-success);
+  font-size: 0.75rem;
+  animation: fadeIn 0.2s ease;
+}
+
+/* ==============================================================================
+   TOAST FEEDBACK DISCRETO
+   ============================================================================== */
+.admin-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1C1917;
+  color: #FFFFFF;
+  padding: 0.65rem 1.1rem;
+  border-radius: 30px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 300;
+  animation: toastIn 0.2s ease-out;
+}
+
+.admin-toast.success {
+  border-left: 3px solid var(--admin-success);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes toastIn {
+  from {
+    transform: translate(-50%, 20px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}

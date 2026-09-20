@@ -1,8 +1,8 @@
 import React from 'react';
-import { MessageCircle, ShieldCheck, Heart } from 'lucide-react';
+import { MessageCircle, ShieldCheck, Heart, Lock } from 'lucide-react';
 import { STORE_CONFIG } from '../data/products';
 
-export const Footer = ({ onSelectCategory }) => {
+export const Footer = ({ onSelectCategory, onNavigateAdmin }) => {
   return (
     <footer className="site-footer">
       <div className="container">
@@ -75,10 +75,33 @@ export const Footer = ({ onSelectCategory }) => {
           <div>
             © {new Date().getFullYear()} {STORE_CONFIG.storeName}. Todos os direitos reservados.
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>Feito com</span>
-            <Heart size={13} color="#E53935" fill="#E53935" />
-            <span>para {STORE_CONFIG.founderName}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>Feito com</span>
+              <Heart size={13} color="#E53935" fill="#E53935" />
+              <span>para {STORE_CONFIG.founderName}</span>
+            </div>
+            <a
+              href="/admin"
+              onClick={(e) => {
+                e.preventDefault();
+                if (onNavigateAdmin) onNavigateAdmin();
+                else window.location.href = '/admin';
+              }}
+              style={{
+                color: 'rgba(255,255,255,0.4)',
+                textDecoration: 'none',
+                fontSize: '0.75rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'color 0.2s',
+              }}
+              title="Acesso Administrativo"
+            >
+              <Lock size={12} />
+              <span>Painel</span>
+            </a>
           </div>
         </div>
       </div>
