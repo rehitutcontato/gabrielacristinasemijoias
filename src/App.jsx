@@ -29,19 +29,28 @@ export function App() {
   // --------------------------------------------------------------------------
   // ROTEAMENTO SIMPLES (CLIENT-SIDE ROUTER: / ou /admin)
   // --------------------------------------------------------------------------
-  const [currentPath, setCurrentPath] = useState(() => {
+  const resolveCurrentPath = () => {
     if (typeof window !== 'undefined') {
+      if (window.location.hash.startsWith('#/admin') || window.location.hash === '#admin') {
+        return '/admin';
+      }
       return window.location.pathname;
     }
     return '/';
-  });
+  };
+
+  const [currentPath, setCurrentPath] = useState(resolveCurrentPath);
 
   useEffect(() => {
-    const handlePopState = () => {
-      setCurrentPath(window.location.pathname);
+    const handleLocationChange = () => {
+      setCurrentPath(resolveCurrentPath());
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
   }, []);
 
   const navigate = (path) => {
