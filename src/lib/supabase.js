@@ -5,12 +5,14 @@ export function getSupabaseCredentials() {
   const envUrl =
     (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) ||
     (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_URL) ||
+    (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
     (typeof process !== 'undefined' && process.env?.SUPABASE_URL) ||
     '';
 
   const envKey =
     (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
     (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_ANON_KEY) ||
+    (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
     (typeof process !== 'undefined' && process.env?.SUPABASE_ANON_KEY) ||
     '';
 
@@ -77,16 +79,31 @@ export function getSupabaseClient() {
   return clientInstance;
 }
 
+function createFallbackQuery() {
+  const queryResult = { data: null, error: new Error('Supabase não configurado') };
+  const builder = {
+    select: () => builder,
+    order: () => builder,
+    limit: () => builder,
+    eq: () => builder,
+    single: () => builder,
+    then: (resolve, reject) => Promise.resolve(queryResult).then(resolve, reject),
+    catch: (reject) => Promise.resolve(queryResult).catch(reject),
+  };
+  return builder;
+}
+
 // Fallback export para compatibilidade
 export const supabase = {
   from: (...args) => {
     const client = getSupabaseClient();
     if (!client) {
+      const fallback = createFallbackQuery();
       return {
-        select: () => Promise.resolve({ data: null, error: new Error('Supabase não configurado') }),
-        update: () => Promise.resolve({ data: null, error: new Error('Supabase não configurado') }),
-        insert: () => Promise.resolve({ data: null, error: new Error('Supabase não configurado') }),
-        delete: () => Promise.resolve({ data: null, error: new Error('Supabase não configurado') }),
+        select: () => fallback,
+        update: () => fallback,
+        insert: () => fallback,
+        delete: () => fallback,
       };
     }
     return client.from(...args);
