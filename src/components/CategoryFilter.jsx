@@ -6,8 +6,9 @@ export const CategoryFilter = ({
   selectedCategory,
   onSelectCategory,
   categoryCounts,
-  selectedMaterial,
-  onSelectMaterial,
+  subcategories,
+  selectedSubcategory,
+  onSelectSubcategory,
   sortBy,
   onSelectSort,
   onlyInStock,
@@ -19,7 +20,7 @@ export const CategoryFilter = ({
   return (
     <section className="category-filter-section" id="catalogo">
       <div className="container">
-        {/* Horizontal Scrollable Pills */}
+        {/* Horizontal Scrollable Category Pills */}
         <div className="category-scroll-container">
           {categories.map((cat) => {
             const count = categoryCounts[cat] || 0;
@@ -37,22 +38,30 @@ export const CategoryFilter = ({
           })}
         </div>
 
-        {/* Secondary Filter & Sort Toolbar */}
-        <div className="toolbar-container" style={{ marginTop: '0.85rem' }}>
-          <div className="toolbar-left">
-            {/* Filter by Material */}
-            <select
-              className="select-luxury"
-              value={selectedMaterial}
-              onChange={(e) => onSelectMaterial(e.target.value)}
-              aria-label="Filtrar por Banho"
-            >
-              <option value="Todos">Todos os Banhos</option>
-              <option value="Ouro 18k">Banho Ouro 18k</option>
-              <option value="Ródio Branco">Ródio Branco</option>
-              <option value="Banho Prata">Banho Prata</option>
-            </select>
+        {/* Subcategories (Banhos & Variações da Categoria Selecionada) */}
+        {subcategories && subcategories.length > 0 && (
+          <div className="subcategory-scroll-container">
+            {subcategories.map((sub) => {
+              const isSubActive = selectedSubcategory === sub.id;
+              return (
+                <button
+                  key={sub.id}
+                  className={`subcategory-pill ${isSubActive ? 'active' : ''}`}
+                  onClick={() => onSelectSubcategory(sub.id)}
+                >
+                  <span>{sub.label}</span>
+                  {sub.count !== undefined && (
+                    <span className="sub-pill-count">{sub.count}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
+        {/* Secondary Sort & Filter Toolbar */}
+        <div className="toolbar-container" style={{ marginTop: '0.75rem' }}>
+          <div className="toolbar-left">
             {/* Sort by */}
             <select
               className="select-luxury"

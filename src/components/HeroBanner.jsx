@@ -15,7 +15,7 @@ export const HeroBanner = ({ onExploreClick }) => {
           <div>
             <div className="hero-tag">
               <Sparkles size={14} />
-              <span>Alta Joalheria Acessível</span>
+              <span>Elegância em Cada Detalhe</span>
             </div>
 
             <h1 className="hero-title font-serif">
@@ -23,9 +23,7 @@ export const HeroBanner = ({ onExploreClick }) => {
             </h1>
 
             <p className="hero-desc">
-              Descubra nossa curadoria de peças banhadas a <strong>Ouro 18k</strong> e <strong>Ródio Branco</strong>.
-              Todas as peças são 100% hipoalergênicas, livres de níquel e acompanham <strong>1 ano de garantia</strong>.
-              Escolha suas peças e finalize seu pedido com total agilidade no WhatsApp da fundadora Gabriela Cristina.
+              <strong>Joias para realçar sua beleza.</strong> Descubra nossa curadoria de semijoias banhadas a <strong>Ouro 18k</strong>, <strong>Ródio Branco</strong> e <strong>Prata 925</strong>. Peças 100% hipoalergênicas, livres de níquel e com <strong>garantia oficial em todas as peças</strong>. Semijoias escolhidas com carinho para você!
             </p>
 
             <div className="hero-actions">

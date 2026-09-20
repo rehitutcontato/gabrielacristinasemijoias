@@ -70,7 +70,7 @@ export function VitrineView({ onNavigateAdmin }) {
   const [isLoadingDynamic, setIsLoadingDynamic] = useState(false);
 
   const [selectedCategory, setSelectedCategory] = useState('Todos');
-  const [selectedMaterial, setSelectedMaterial] = useState('Todos');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('Todos');
   const [sortBy, setSortBy] = useState('default');
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -103,6 +103,23 @@ export function VitrineView({ onNavigateAdmin }) {
     return () => window.removeEventListener('gc-catalog-revalidate', handleRevalidate);
   }, []);
 
+  // Auxiliar para casamento de subcategoria por banho
+  const matchesSubcategory = (product, subId) => {
+    if (!subId || subId === 'Todos') return true;
+    const mat = (product.material || '').toLowerCase();
+    const name = (product.name || product.nome || '').toLowerCase();
+    if (subId === 'Ouro 18k') {
+      return mat.includes('ouro') || name.includes('ouro');
+    }
+    if (subId === 'Ródio Branco') {
+      return mat.includes('ródio') || mat.includes('rodio') || name.includes('ródio') || name.includes('rodio');
+    }
+    if (subId === 'Prata') {
+      return mat.includes('prata') || name.includes('prata');
+    }
+    return true;
+  };
+
   // Contagem dinâmica por categoria
   const categoryCounts = useMemo(() => {
     const counts = { Todos: products.length };
@@ -115,6 +132,48 @@ export function VitrineView({ onNavigateAdmin }) {
     });
     return counts;
   }, [products]);
+
+  // Lista dinâmica de subcategorias com contagens contextuais
+  const subcategories = useMemo(() => {
+    const isSingular = {
+      'Brincos': 'Brinco',
+      'Colares': 'Colar',
+      'Anéis': 'Anel',
+      'Pulseiras': 'Pulseira',
+      'Piercings': 'Piercing',
+      'Conjuntos & Mix': 'Conjunto',
+    };
+
+    const singular = isSingular[selectedCategory] || 'Peça';
+    const isAll = selectedCategory === 'Todos';
+
+    const baseList = selectedCategory === 'Todos'
+      ? products
+      : products.filter((p) => (p.category || p.categoria) === selectedCategory);
+
+    return [
+      {
+        id: 'Todos',
+        label: isAll ? 'Todos os Banhos' : `Todos os ${selectedCategory}`,
+        count: baseList.length
+      },
+      {
+        id: 'Ouro 18k',
+        label: isAll ? 'Banho Ouro 18k' : `${singular} no Banho de Ouro`,
+        count: baseList.filter((p) => matchesSubcategory(p, 'Ouro 18k')).length
+      },
+      {
+        id: 'Ródio Branco',
+        label: isAll ? 'Ródio Branco' : `${singular} no Ródio Branco`,
+        count: baseList.filter((p) => matchesSubcategory(p, 'Ródio Branco')).length
+      },
+      {
+        id: 'Prata',
+        label: isAll ? 'Prata 925' : `${singular} em Prata`,
+        count: baseList.filter((p) => matchesSubcategory(p, 'Prata')).length
+      }
+    ];
+  }, [products, selectedCategory]);
 
   // Filtragem e Ordenação da Vitrine
   const filteredProducts = useMemo(() => {
@@ -132,11 +191,9 @@ export function VitrineView({ onNavigateAdmin }) {
       }
     }
 
-    // Filtro por material / banho
-    if (selectedMaterial !== 'Todos') {
-      list = list.filter((p) =>
-        (p.material || '').toLowerCase().includes(selectedMaterial.toLowerCase())
-      );
+    // Filtro por subcategoria (Banho)
+    if (selectedSubcategory !== 'Todos') {
+      list = list.filter((p) => matchesSubcategory(p, selectedSubcategory));
     }
 
     // Apenas disponíveis em estoque (ativo = true)
@@ -186,7 +243,7 @@ export function VitrineView({ onNavigateAdmin }) {
   }, [
     products,
     selectedCategory,
-    selectedMaterial,
+    selectedSubcategory,
     sortBy,
     onlyInStock,
     searchQuery,
@@ -196,6 +253,7 @@ export function VitrineView({ onNavigateAdmin }) {
 
   const handleSelectCategory = (cat) => {
     setSelectedCategory(cat);
+    setSelectedSubcategory('Todos');
     setActiveMobileTab('home');
     const elem = document.getElementById('catalogo');
     if (elem) {
@@ -212,7 +270,7 @@ export function VitrineView({ onNavigateAdmin }) {
 
   const handleLogoClick = () => {
     setSelectedCategory('Todos');
-    setSelectedMaterial('Todos');
+    setSelectedSubcategory('Todos');
     setSearchQuery('');
     setActiveMobileTab('home');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -228,7 +286,7 @@ export function VitrineView({ onNavigateAdmin }) {
 
   const handleResetFilters = () => {
     setSelectedCategory('Todos');
-    setSelectedMaterial('Todos');
+    setSelectedSubcategory('Todos');
     setSortBy('default');
     setOnlyInStock(false);
     setSearchQuery('');
@@ -286,8 +344,9 @@ export function VitrineView({ onNavigateAdmin }) {
           selectedCategory={selectedCategory}
           onSelectCategory={handleSelectCategory}
           categoryCounts={categoryCounts}
-          selectedMaterial={selectedMaterial}
-          onSelectMaterial={setSelectedMaterial}
+          subcategories={subcategories}
+          selectedSubcategory={selectedSubcategory}
+          onSelectSubcategory={setSelectedSubcategory}
           sortBy={sortBy}
           onSelectSort={setSortBy}
           onlyInStock={onlyInStock}

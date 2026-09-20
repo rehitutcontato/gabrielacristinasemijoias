@@ -13,7 +13,7 @@ export const Header = ({ searchQuery, setSearchQuery, onLogoClick, onFavoritesCl
       <div className="top-bar">
         <Sparkles size={13} className="highlight" />
         <span>
-          Banhos Nobres em Ouro 18k e Ródio • <span className="highlight">1 Ano de Garantia</span> • Compre Direto no WhatsApp
+          Banhos em Ouro 18k • Ródio Branco • Prata 925 • <span className="highlight">Garantia em Todas as Peças</span> • Compre no WhatsApp
         </span>
       </div>
 
@@ -32,18 +32,18 @@ export const Header = ({ searchQuery, setSearchQuery, onLogoClick, onFavoritesCl
         </div>
 
         {/* Center: Brand Logo */}
-        <div className="header-logo-container" onClick={onLogoClick} role="button" tabIndex={0}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <img
-              src="/images/logo-brand.jpg"
-              alt="GC Semijoias & Acessórios"
-              className="header-logo-img"
-            />
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <span className="header-logo-text">GC Semijoias</span>
-              <span className="header-logo-sub">& Acessórios</span>
-            </div>
-          </div>
+        <div 
+          className="header-logo-container" 
+          onClick={onLogoClick} 
+          role="button" 
+          tabIndex={0}
+          aria-label="Página inicial GC Semijoias"
+        >
+          <img
+            src="/images/logo-brand.png"
+            alt="GC Semijoias & Acessórios"
+            className="header-logo-img"
+          />
         </div>
 
         {/* Right: Favorites & Bag */}

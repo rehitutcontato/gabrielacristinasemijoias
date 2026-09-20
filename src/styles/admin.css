@@ -844,3 +844,60 @@
     opacity: 1;
   }
 }
+
+/* Navigation Tabs */
+.admin-nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid #ECE7DF;
+  padding-bottom: 0.65rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.admin-nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid #E5E0D8;
+  background: #FFFFFF;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.admin-tab-btn:hover {
+  border-color: var(--admin-gold);
+  color: var(--admin-text-primary);
+}
+
+.admin-tab-btn.active {
+  background: var(--admin-gold);
+  border-color: var(--admin-gold);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(197, 160, 89, 0.25);
+}
+
+.admin-tab-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+  padding: 1px 7px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.admin-tab-btn:not(.active) .admin-tab-badge {
+  background: var(--gold-ultralight);
+  color: var(--admin-gold);
+}

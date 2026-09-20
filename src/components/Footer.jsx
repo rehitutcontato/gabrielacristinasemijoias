@@ -9,24 +9,18 @@ export const Footer = ({ onSelectCategory, onNavigateAdmin }) => {
         <div className="footer-grid">
           {/* Brand Col */}
           <div className="footer-brand">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
               <img
-                src="/images/logo-brand.jpg"
-                alt="GC Semijoias"
-                style={{ width: '44px', height: '44px', borderRadius: '8px', objectFit: 'contain' }}
+                src="/images/logo-brand.png"
+                alt="GC Semijoias & Acessórios"
+                style={{ height: '48px', width: 'auto', objectFit: 'contain' }}
               />
-              <div>
-                <h3 style={{ margin: 0, lineHeight: 1.1 }}>GC Semijoias</h3>
-                <span style={{ fontSize: '0.72rem', letterSpacing: '0.15em', color: 'var(--gold-light)', textTransform: 'uppercase' }}>
-                  & Acessórios
-                </span>
-              </div>
             </div>
 
             <p className="footer-desc">
-              Semijoias finas com banho nobre em Ouro 18k e Ródio Branco. Peças hipoalergênicas, 
-              acabamento artesanal e atendimento humanizado conduzido diretamente pela fundadora 
-              <strong> Gabriela Cristina</strong>.
+              Semijoias finas banhadas a <strong>Ouro 18k</strong>, <strong>Ródio Branco</strong> e <strong>Prata 925</strong>. 
+              Peças 100% hipoalergênicas, livres de níquel, com certificado oficial de garantia e atendimento 
+              humanizado conduzido diretamente pela fundadora <strong>Gabriela Cristina</strong>.
             </p>
 
             <a

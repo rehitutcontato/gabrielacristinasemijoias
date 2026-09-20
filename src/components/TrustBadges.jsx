@@ -5,8 +5,8 @@ export const TrustBadges = () => {
   const items = [
     {
       icon: <Crown size={24} />,
-      title: "Banho Nobre 18k",
-      desc: "Multi-camadas de ouro 18k e ródio para brilho duradouro"
+      title: "Banhos Nobres",
+      desc: "Ouro 18k, Ródio Branco e Prata 925 com brilho e acabamento impecável"
     },
     {
       icon: <ShieldCheck size={24} />,
@@ -15,8 +15,8 @@ export const TrustBadges = () => {
     },
     {
       icon: <Gem size={24} />,
-      title: "1 Ano de Garantia",
-      desc: "Certificado de garantia de qualidade para sua segurança"
+      title: "Garantia em Todas as Peças",
+      desc: "Acompanha certificado oficial de garantia para sua segurança"
     },
     {
       icon: <HeartHandshake size={24} />,

@@ -28,6 +28,23 @@ import {
   excluirProduto,
 } from '../../actions/admin';
 import {
+  obterGarantias,
+  emitirGarantia,
+  excluirGarantia,
+  gerarTextoWhatsAppGarantia
+} from '../../actions/warranty';
+import { WarrantyModal } from '../WarrantyModal';
+import {
+  ShieldCheck,
+  Award,
+  FileText,
+  Phone,
+  Calendar,
+  MessageCircle,
+  Clock,
+  Printer
+} from 'lucide-react';
+import {
   getSupabaseCredentials,
   saveSupabaseCredentials,
   getSupabaseClient,
@@ -148,6 +165,95 @@ export function AdminPage({ onNavigateToStore }) {
       setToastMessage('');
     }, 2600);
   };
+
+  // --------------------------------------------------------------------------
+  // 2.1. ESTADOS DO MÓDULO DE GARANTIAS & VENDAS
+  // --------------------------------------------------------------------------
+  const [adminTab, setAdminTab] = useState('produtos'); // 'produtos' | 'garantias'
+  const [warranties, setWarranties] = useState(obterGarantias);
+  const [warrantySearch, setWarrantySearch] = useState('');
+  const [activeCertificate, setActiveCertificate] = useState(null);
+  const [isManualWarrantyModalOpen, setIsManualWarrantyModalOpen] = useState(false);
+
+  // Formulário de nova garantia avulsa
+  const [manualClientName, setManualClientName] = useState('');
+  const [manualClientPhone, setManualClientPhone] = useState('');
+  const [manualItemName, setManualItemName] = useState('');
+  const [manualItemMaterial, setManualItemMaterial] = useState('Ouro 18k');
+  const [manualItemPrice, setManualItemPrice] = useState('');
+  const [manualWarrantyYears, setManualWarrantyYears] = useState(1);
+  const [manualFormError, setManualFormError] = useState('');
+
+  useEffect(() => {
+    const handleSyncWarranties = () => {
+      setWarranties(obterGarantias());
+    };
+    window.addEventListener('gc-garantias-changed', handleSyncWarranties);
+    return () => window.removeEventListener('gc-garantias-changed', handleSyncWarranties);
+  }, []);
+
+  const handleCreateManualWarranty = (e) => {
+    e.preventDefault();
+    setManualFormError('');
+    if (!manualClientName.trim()) {
+      setManualFormError('Informe o nome da cliente.');
+      return;
+    }
+    if (!manualItemName.trim()) {
+      setManualFormError('Informe o nome da semijoia.');
+      return;
+    }
+
+    try {
+      const priceNum = manualItemPrice ? Number(manualItemPrice.replace(',', '.')) : 0;
+      const formattedTotal = priceNum > 0 ? `R$ ${priceNum.toFixed(2).replace('.', ',')}` : '';
+
+      const nova = emitirGarantia({
+        clienteNome: manualClientName.trim(),
+        clienteTelefone: manualClientPhone.trim(),
+        itens: [
+          {
+            name: manualItemName.trim(),
+            material: manualItemMaterial,
+            price: priceNum,
+            quantity: 1,
+            image: '/images/logo-brand.png'
+          }
+        ],
+        periodoAnos: manualWarrantyYears,
+        totalFormatado: formattedTotal
+      });
+
+      showToast('Garantia registrada com sucesso!');
+      setIsManualWarrantyModalOpen(false);
+      setManualClientName('');
+      setManualClientPhone('');
+      setManualItemName('');
+      setManualItemPrice('');
+      setManualWarrantyYears(1);
+      setActiveCertificate(nova);
+    } catch (err) {
+      setManualFormError(err.message || 'Erro ao registrar garantia.');
+    }
+  };
+
+  const handleDeleteWarranty = (id) => {
+    if (window.confirm('Deseja realmente remover o registro desta garantia?')) {
+      excluirGarantia(id);
+      showToast('Garantia removida.');
+    }
+  };
+
+  const filteredWarranties = useMemo(() => {
+    if (!warrantySearch.trim()) return warranties;
+    const q = warrantySearch.toLowerCase().trim();
+    return warranties.filter((w) => {
+      const cName = (w.clienteNome || '').toLowerCase();
+      const cCode = (w.codigo || '').toLowerCase();
+      const itemsMatch = (w.itens || []).some((it) => (it.name || '').toLowerCase().includes(q));
+      return cName.includes(q) || cCode.includes(q) || itemsMatch;
+    });
+  }, [warranties, warrantySearch]);
 
   // --------------------------------------------------------------------------
   // 3. FILTRO RÁPIDO DE PRODUTOS
@@ -503,62 +609,278 @@ export function AdminPage({ onNavigateToStore }) {
           </div>
         )}
 
-        {/* Barra de Ferramentas: Busca Rápida e Botão "+ Novo Produto" */}
-        <div className="admin-tools-bar">
-          <div className="admin-search-wrapper">
-            <Search size={18} className="admin-search-icon" />
-            <input
-              type="text"
-              className="admin-search-input"
-              placeholder="Buscar peça por nome ou categoria..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button
-                className="admin-search-clear"
-                onClick={() => setSearchQuery('')}
-                aria-label="Limpar busca"
-              >
-                ×
-              </button>
-            )}
-          </div>
+        {/* Abas de Navegação do Painel */}
+        <div className="admin-nav-tabs">
+          <button
+            type="button"
+            className={`admin-tab-btn ${adminTab === 'produtos' ? 'active' : ''}`}
+            onClick={() => setAdminTab('produtos')}
+          >
+            <Package size={16} />
+            <span>Catálogo de Produtos ({products.length})</span>
+          </button>
 
           <button
-            className="admin-btn-add-product"
-            onClick={() => setIsModalOpen(true)}
+            type="button"
+            className={`admin-tab-btn ${adminTab === 'garantias' ? 'active' : ''}`}
+            onClick={() => setAdminTab('garantias')}
           >
-            <Plus size={18} />
-            <span>+ Novo Produto</span>
+            <ShieldCheck size={16} />
+            <span>Controle de Garantias & Vendas</span>
+            {warranties.length > 0 && (
+              <span className="admin-tab-badge">
+                {warranties.length}
+              </span>
+            )}
           </button>
         </div>
 
-        {/* Lista Compacta de Produtos */}
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--admin-text-secondary)' }}>
-            <RefreshCw size={28} className="spin-animation" style={{ margin: '0 auto 0.75rem' }} />
-            <p style={{ fontSize: '0.9rem' }}>Carregando produtos...</p>
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem 1rem', background: '#FFF', borderRadius: '16px', border: '1px solid #ECE7DF' }}>
-            <Package size={36} color="var(--admin-gold)" style={{ margin: '0 auto 0.75rem' }} />
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.3rem' }}>Nenhum produto encontrado</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--admin-text-secondary)' }}>
-              {searchQuery ? 'Tente buscar com outros termos.' : 'Cadastre sua primeira peça no botão acima!'}
-            </p>
-          </div>
-        ) : (
-          <div className="admin-product-list">
-            {filteredProducts.map((product) => (
-              <AdminProductRow
-                key={product.id}
-                product={product}
-                onToggleStatus={() => handleToggleStatus(product)}
-                onSavePrices={(preco, promo) => handleSavePrices(product.id, preco, promo)}
-                onDelete={() => setProductToDelete(product)}
-              />
-            ))}
+        {/* ABA 1: CATÁLOGO DE PRODUTOS */}
+        {adminTab === 'produtos' && (
+          <>
+            {/* Barra de Ferramentas: Busca Rápida e Botão "+ Novo Produto" */}
+            <div className="admin-tools-bar">
+              <div className="admin-search-wrapper">
+                <Search size={18} className="admin-search-icon" />
+                <input
+                  type="text"
+                  className="admin-search-input"
+                  placeholder="Buscar peça por nome ou categoria..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button
+                    className="admin-search-clear"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Limpar busca"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              <button
+                className="admin-btn-add-product"
+                onClick={() => setIsModalOpen(true)}
+              >
+                <Plus size={18} />
+                <span>+ Novo Produto</span>
+              </button>
+            </div>
+
+            {/* Lista Compacta de Produtos */}
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--admin-text-secondary)' }}>
+                <RefreshCw size={28} className="spin-animation" style={{ margin: '0 auto 0.75rem' }} />
+                <p style={{ fontSize: '0.9rem' }}>Carregando produtos...</p>
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem 1rem', background: '#FFF', borderRadius: '16px', border: '1px solid #ECE7DF' }}>
+                <Package size={36} color="var(--admin-gold)" style={{ margin: '0 auto 0.75rem' }} />
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.3rem' }}>Nenhum produto encontrado</h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--admin-text-secondary)' }}>
+                  {searchQuery ? 'Tente buscar com outros termos.' : 'Cadastre sua primeira peça no botão acima!'}
+                </p>
+              </div>
+            ) : (
+              <div className="admin-product-list">
+                {filteredProducts.map((product) => (
+                  <AdminProductRow
+                    key={product.id}
+                    product={product}
+                    onToggleStatus={() => handleToggleStatus(product)}
+                    onSavePrices={(preco, promo) => handleSavePrices(product.id, preco, promo)}
+                    onDelete={() => setProductToDelete(product)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ABA 2: CONTROLE DE GARANTIAS & VENDAS */}
+        {adminTab === 'garantias' && (
+          <div className="admin-warranty-section">
+            <div className="admin-tools-bar">
+              <div className="admin-search-wrapper">
+                <Search size={18} className="admin-search-icon" />
+                <input
+                  type="text"
+                  className="admin-search-input"
+                  placeholder="Buscar garantia por cliente, código ou peça..."
+                  value={warrantySearch}
+                  onChange={(e) => setWarrantySearch(e.target.value)}
+                />
+                {warrantySearch && (
+                  <button
+                    className="admin-search-clear"
+                    onClick={() => setWarrantySearch('')}
+                    aria-label="Limpar busca"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              <button
+                className="admin-btn-add-product"
+                onClick={() => setIsManualWarrantyModalOpen(true)}
+              >
+                <Plus size={18} />
+                <span>+ Registrar Garantia</span>
+              </button>
+            </div>
+
+            {filteredWarranties.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3.5rem 1rem', background: '#FFF', borderRadius: '16px', border: '1px solid #ECE7DF' }}>
+                <ShieldCheck size={40} color="var(--admin-gold)" style={{ margin: '0 auto 0.75rem' }} />
+                <h3 style={{ fontSize: '1.15rem', marginBottom: '0.4rem', color: 'var(--admin-text-primary)' }}>
+                  Nenhuma garantia registrada ainda
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--admin-text-secondary)', maxWidth: '420px', margin: '0 auto 1.25rem' }}>
+                  As garantias emitidas pelas clientes na sacola ou vendas registradas aparecerão aqui organizadas com prazo de 1 ou 2 anos.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsManualWarrantyModalOpen(true)}
+                  className="admin-btn-primary"
+                  style={{ display: 'inline-flex', padding: '9px 18px' }}
+                >
+                  <Plus size={16} />
+                  <span>Registrar Primeira Garantia</span>
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {filteredWarranties.map((w) => (
+                  <div
+                    key={w.id}
+                    style={{
+                      background: '#FFFFFF',
+                      borderRadius: '14px',
+                      border: '1px solid #ECE7DF',
+                      padding: '1.1rem 1.25rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--admin-gold)', background: 'var(--gold-ultralight)', padding: '2px 8px', borderRadius: '6px' }}>
+                            {w.codigo}
+                          </span>
+                          <span style={{ fontSize: '0.72rem', color: '#16A34A', fontWeight: '600', background: '#DCFCE7', padding: '2px 8px', borderRadius: '12px' }}>
+                            {w.status === 'ativa' ? 'Garantia Ativa' : w.status}
+                          </span>
+                        </div>
+                        <h4 style={{ fontSize: '1.05rem', fontWeight: '700', marginTop: '6px', color: 'var(--admin-text-primary)' }}>
+                          {w.clienteNome}
+                        </h4>
+                        {w.clienteTelefone && (
+                          <div style={{ fontSize: '0.78rem', color: 'var(--admin-text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Phone size={12} />
+                            <span>{w.clienteTelefone}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ textAlign: 'right', fontSize: '0.8rem' }}>
+                        <div style={{ color: 'var(--admin-text-secondary)' }}>
+                          Compra: <strong>{w.dataCompra}</strong>
+                        </div>
+                        <div style={{ color: 'var(--admin-gold)', fontWeight: '600', marginTop: '2px' }}>
+                          {w.periodoLabel}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--admin-text-muted)' }}>
+                          Válida até: {w.validadeAte}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Peças da garantia */}
+                    <div style={{ background: '#FAF8F5', borderRadius: '8px', padding: '8px 12px', fontSize: '0.8rem' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--admin-text-muted)', display: 'block', marginBottom: '4px' }}>
+                        Peças cobertas:
+                      </span>
+                      {w.itens.map((it, idx) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0' }}>
+                          <span><strong>{it.quantity}x</strong> {it.name} ({it.material})</span>
+                          {it.price > 0 && <span style={{ color: 'var(--admin-text-secondary)' }}>R$ {(it.price * it.quantity).toFixed(2).replace('.', ',')}</span>}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Ações da garantia */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px', borderTop: '1px solid #F3EFEA' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteWarranty(w.id)}
+                        style={{ color: '#DC2626', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}
+                      >
+                        <Trash2 size={13} />
+                        <span>Remover</span>
+                      </button>
+
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const txt = gerarTextoWhatsAppGarantia(w);
+                            let url = `https://api.whatsapp.com/send?text=${encodeURIComponent(txt)}`;
+                            if (w.clienteTelefone) {
+                              const clean = w.clienteTelefone.replace(/\D/g, '');
+                              if (clean) url = `https://wa.me/55${clean}?text=${encodeURIComponent(txt)}`;
+                            }
+                            window.open(url, '_blank');
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            background: '#25D366',
+                            color: '#FFF',
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            fontSize: '0.78rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            border: 'none'
+                          }}
+                        >
+                          <MessageCircle size={14} />
+                          <span>WhatsApp</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setActiveCertificate(w)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            background: 'var(--admin-gold)',
+                            color: '#FFF',
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            fontSize: '0.78rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            border: 'none'
+                          }}
+                        >
+                          <ShieldCheck size={14} />
+                          <span>Ver Certificado</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -841,6 +1163,128 @@ export function AdminPage({ onNavigateToStore }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal / Drawer para Registro de Garantia Avulsa */}
+      {isManualWarrantyModalOpen && (
+        <div className="admin-modal-backdrop" onClick={() => setIsManualWarrantyModalOpen(false)}>
+          <div className="admin-drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-drawer-header">
+              <h2 className="admin-drawer-title">Registrar Garantia & Venda</h2>
+              <button
+                className="admin-drawer-close"
+                onClick={() => setIsManualWarrantyModalOpen(false)}
+                aria-label="Fechar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateManualWarranty} className="admin-drawer-body">
+              {manualFormError && <div className="admin-auth-error">{manualFormError}</div>}
+
+              <div className="admin-input-group">
+                <label className="admin-input-label">Nome da Cliente *</label>
+                <input
+                  type="text"
+                  className="admin-input-field"
+                  placeholder="Ex: Amanda Silva"
+                  value={manualClientName}
+                  onChange={(e) => setManualClientName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="admin-input-group">
+                <label className="admin-input-label">WhatsApp da Cliente (opcional)</label>
+                <input
+                  type="text"
+                  className="admin-input-field"
+                  placeholder="Ex: 19999998888"
+                  value={manualClientPhone}
+                  onChange={(e) => setManualClientPhone(e.target.value)}
+                />
+              </div>
+
+              <div className="admin-input-group">
+                <label className="admin-input-label">Nome da Semijoia *</label>
+                <input
+                  type="text"
+                  className="admin-input-field"
+                  placeholder="Ex: Brinco Argola Coração Luxo"
+                  value={manualItemName}
+                  onChange={(e) => setManualItemName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="admin-form-row">
+                <div className="admin-input-group" style={{ flex: 1 }}>
+                  <label className="admin-input-label">Banho / Material</label>
+                  <select
+                    className="admin-select-field"
+                    value={manualItemMaterial}
+                    onChange={(e) => setManualItemMaterial(e.target.value)}
+                  >
+                    <option value="Ouro 18k">Banho Ouro 18k</option>
+                    <option value="Ródio Branco">Ródio Branco</option>
+                    <option value="Prata 925">Prata 925</option>
+                  </select>
+                </div>
+
+                <div className="admin-input-group" style={{ flex: 1 }}>
+                  <label className="admin-input-label">Prazo da Garantia</label>
+                  <select
+                    className="admin-select-field"
+                    value={manualWarrantyYears}
+                    onChange={(e) => setManualWarrantyYears(Number(e.target.value))}
+                  >
+                    <option value={1}>1 Ano de Garantia</option>
+                    <option value={2}>2 Anos de Garantia</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="admin-input-group">
+                <label className="admin-input-label">Valor da Peça (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="admin-input-field"
+                  placeholder="Ex: 49.90"
+                  value={manualItemPrice}
+                  onChange={(e) => setManualItemPrice(e.target.value)}
+                />
+              </div>
+
+              <div className="admin-drawer-actions">
+                <button
+                  type="button"
+                  className="admin-btn-ghost"
+                  onClick={() => setIsManualWarrantyModalOpen(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="admin-btn-primary"
+                >
+                  <ShieldCheck size={16} />
+                  <span>Emitir Certificado de Garantia</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal do Certificado Oficial de Garantia */}
+      {activeCertificate && (
+        <WarrantyModal
+          garantia={activeCertificate}
+          onClose={() => setActiveCertificate(null)}
+        />
       )}
 
       {/* Toast de Feedback Discreto */}
