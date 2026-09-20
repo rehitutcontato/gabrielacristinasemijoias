@@ -14,6 +14,10 @@ import {
   RefreshCw,
   SlidersHorizontal,
   Package,
+  Database,
+  ExternalLink,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   obterProdutosAdmin,
@@ -21,6 +25,11 @@ import {
   alternarStatusProduto,
   cadastrarProduto,
 } from '../../actions/admin';
+import {
+  getSupabaseCredentials,
+  saveSupabaseCredentials,
+  getSupabaseClient,
+} from '../../lib/supabase';
 import '../../styles/admin.css';
 
 const CATEGORIES = [
@@ -91,6 +100,14 @@ export function AdminPage({ onNavigateToStore }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+
+  // Status e modal de conexão com o Supabase
+  const [supabaseCreds, setSupabaseCreds] = useState(getSupabaseCredentials);
+  const [isDbModalOpen, setIsDbModalOpen] = useState(false);
+  const [dbUrlInput, setDbUrlInput] = useState(supabaseCreds.url || '');
+  const [dbKeyInput, setDbKeyInput] = useState(supabaseCreds.anonKey || '');
+  const [dbMessage, setDbMessage] = useState('');
+  const [isTestingDb, setIsTestingDb] = useState(false);
 
   // Estados do formulário retrátil "+ Novo Produto"
   const [formName, setFormName] = useState('');
@@ -210,7 +227,7 @@ export function AdminPage({ onNavigateToStore }) {
       showToast('Preço atualizado com sucesso!');
     } catch (err) {
       console.error('Erro ao atualizar preços:', err);
-      showToast('Erro ao salvar preços no banco.');
+      showToast('Erro ao salvar preços.');
     }
   };
 
@@ -272,6 +289,47 @@ export function AdminPage({ onNavigateToStore }) {
       setFormError(err.message || 'Erro ao cadastrar produto.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // --------------------------------------------------------------------------
+  // 6. CONEXÃO COM O SUPABASE
+  // --------------------------------------------------------------------------
+  const handleSaveDbSettings = async (e) => {
+    e.preventDefault();
+    setDbMessage('');
+    setIsTestingDb(true);
+
+    try {
+      if (!dbUrlInput.trim() || !dbKeyInput.trim()) {
+        saveSupabaseCredentials('', '');
+        setSupabaseCreds(getSupabaseCredentials());
+        setDbMessage('Credenciais removidas. Modo Local ativado.');
+        fetchAdminProducts();
+        return;
+      }
+
+      saveSupabaseCredentials(dbUrlInput.trim(), dbKeyInput.trim());
+      const updatedCreds = getSupabaseCredentials();
+      setSupabaseCreds(updatedCreds);
+
+      // Testa a conexão
+      const client = getSupabaseClient();
+      if (client) {
+        const { error } = await client.from('produtos').select('id').limit(1);
+        if (error) {
+          setDbMessage(`Conexão salva, mas o banco retornou: ${error.message}. Verifique se o script SQL foi executado.`);
+        } else {
+          setDbMessage('✅ Conectado com sucesso ao Supabase na nuvem!');
+          showToast('Supabase conectado com sucesso!');
+          fetchAdminProducts();
+          setTimeout(() => setIsDbModalOpen(false), 1200);
+        }
+      }
+    } catch (err) {
+      setDbMessage(`Erro ao testar conexão: ${err.message}`);
+    } finally {
+      setIsTestingDb(false);
     }
   };
 
@@ -361,6 +419,15 @@ export function AdminPage({ onNavigateToStore }) {
                   <span className="admin-active-dot" />
                   {activeCount} ativos
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setIsDbModalOpen(true)}
+                  className={`admin-db-badge ${supabaseCreds.isConfigured ? 'connected' : 'local'}`}
+                  title="Status de Conexão com o Supabase"
+                >
+                  <Database size={11} />
+                  <span>{supabaseCreds.isConfigured ? 'Nuvem' : 'Local'}</span>
+                </button>
               </div>
             </div>
           </div>
@@ -391,6 +458,26 @@ export function AdminPage({ onNavigateToStore }) {
 
       {/* Container Principal */}
       <main className="admin-container">
+        {/* Banner informativo caso o Supabase não esteja conectado à nuvem */}
+        {!supabaseCreds.isConfigured && (
+          <div
+            className="admin-notice-banner"
+            onClick={() => setIsDbModalOpen(true)}
+            role="button"
+            tabIndex={0}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+              <Database size={18} color="var(--admin-gold)" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <strong style={{ color: '#92400E' }}>Modo Local Ativo: </strong>
+                <span>
+                  Suas alterações de preço e estoque estão funcionando e salvas neste dispositivo. Para sincronizar na nuvem e atualizar automaticamente para todos os clientes, <strong>clique aqui e conecte o Supabase</strong>.
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Barra de Ferramentas: Busca Rápida e Botão "+ Novo Produto" */}
         <div className="admin-tools-bar">
           <div className="admin-search-wrapper">
@@ -581,6 +668,113 @@ export function AdminPage({ onNavigateToStore }) {
                   </>
                 )}
               </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal / Gaveta de Configuração do Supabase */}
+      {isDbModalOpen && (
+        <div className="admin-modal-backdrop" onClick={() => setIsDbModalOpen(false)}>
+          <div className="admin-drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-drawer-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Database size={20} color="var(--admin-gold)" />
+                <h2 className="admin-drawer-title">Conectar Banco Supabase</h2>
+              </div>
+              <button
+                className="admin-drawer-close"
+                onClick={() => setIsDbModalOpen(false)}
+                aria-label="Fechar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDbSettings} className="admin-drawer-body">
+              <p style={{ fontSize: '0.85rem', color: 'var(--admin-text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                Conecte seu projeto Supabase para que todas as alterações de preços, novos produtos e status de estoque fiquem salvos na nuvem e apareçam instantaneamente para todos os visitantes do seu site.
+              </p>
+
+              {dbMessage && (
+                <div
+                  style={{
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
+                    background: dbMessage.includes('✅') ? '#ECFDF5' : '#FEF2F2',
+                    color: dbMessage.includes('✅') ? '#065F46' : '#991B1B',
+                    border: `1px solid ${dbMessage.includes('✅') ? '#A7F3D0' : '#FECACA'}`,
+                  }}
+                >
+                  {dbMessage}
+                </div>
+              )}
+
+              <div className="admin-input-group">
+                <label className="admin-input-label">Project URL (Supabase)</label>
+                <input
+                  type="url"
+                  className="admin-input-field"
+                  placeholder="https://seu-projeto.supabase.co"
+                  value={dbUrlInput}
+                  onChange={(e) => setDbUrlInput(e.target.value)}
+                />
+              </div>
+
+              <div className="admin-input-group">
+                <label className="admin-input-label">Anon / Public Key (Supabase)</label>
+                <input
+                  type="text"
+                  className="admin-input-field"
+                  placeholder="eyJh..."
+                  value={dbKeyInput}
+                  onChange={(e) => setDbKeyInput(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button
+                  type="submit"
+                  className="admin-btn-primary"
+                  style={{ flex: 2 }}
+                  disabled={isTestingDb}
+                >
+                  {isTestingDb ? (
+                    <>
+                      <RefreshCw size={16} className="spin-animation" />
+                      <span>Testando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={16} />
+                      <span>Salvar & Conectar</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  className="admin-btn-ghost"
+                  style={{ flex: 1, justifyContent: 'center' }}
+                  onClick={() => {
+                    setDbUrlInput('');
+                    setDbKeyInput('');
+                    saveSupabaseCredentials('', '');
+                    setSupabaseCreds(getSupabaseCredentials());
+                    setDbMessage('Credenciais limpas.');
+                  }}
+                >
+                  Limpar
+                </button>
+              </div>
+
+              <div style={{ marginTop: '0.75rem', padding: '0.85rem', background: '#FAF7F2', borderRadius: '10px', fontSize: '0.78rem', color: '#5C544B' }}>
+                <strong>📌 Dica para produção (Vercel):</strong>
+                <p style={{ margin: '0.3rem 0 0', lineHeight: 1.4 }}>
+                  Você também pode configurar as variáveis <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code> diretamente no painel da Vercel (<em>Settings &gt; Environment Variables</em>).
+                </p>
+              </div>
             </form>
           </div>
         </div>

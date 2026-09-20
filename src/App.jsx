@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { PRODUCTS } from './data/products';
-import { obterProdutosVitrine } from './actions/admin';
+import {
+  obterProdutosVitrine,
+  getLocalOverrides,
+  getCustomProducts,
+  mapSupabaseProduct,
+} from './actions/admin';
 import { useCart } from './context/CartContext';
 import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
@@ -71,7 +76,38 @@ export function App() {
   // --------------------------------------------------------------------------
   const { favorites } = useCart();
 
-  const [products, setProducts] = useState(PRODUCTS);
+  // Inicializa sincronamente com quaisquer overrides já gravados
+  const [products, setProducts] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const overrides = getLocalOverrides();
+      const customs = getCustomProducts();
+      const base = [...customs, ...PRODUCTS];
+      const mapped = base.map((p) => {
+        const o = overrides[p.id];
+        if (!o) return mapSupabaseProduct(p);
+        const basePrice = o.preco !== undefined ? Number(o.preco) : (Number(p.preco ?? p.price) || 0);
+        const rawPromo = o.preco_promocional !== undefined ? o.preco_promocional : (p.preco_promocional ?? p.promotional_price);
+        const promoPrice = rawPromo != null && rawPromo !== '' ? Number(rawPromo) : null;
+        const effectivePrice = promoPrice && promoPrice > 0 ? promoPrice : basePrice;
+        const isAtivo = o.ativo !== undefined ? Boolean(o.ativo) : (p.ativo ?? p.in_stock ?? true);
+        return {
+          ...mapSupabaseProduct(p),
+          preco: basePrice,
+          price: effectivePrice,
+          original_price: promoPrice ? basePrice : null,
+          promotional_price: promoPrice,
+          preco_promocional: promoPrice,
+          formatted_price: `R$ ${effectivePrice.toFixed(2).replace('.', ',')}`,
+          installments: `3x de R$ ${(effectivePrice / 3).toFixed(2).replace('.', ',')} sem juros`,
+          in_stock: isAtivo,
+          ativo: isAtivo,
+        };
+      });
+      return mapped.filter((p) => p.ativo === true || p.in_stock === true);
+    }
+    return PRODUCTS;
+  });
+
   const [isLoadingDynamic, setIsLoadingDynamic] = useState(false);
 
   const [selectedCategory, setSelectedCategory] = useState('Todos');
